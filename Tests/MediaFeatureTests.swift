@@ -577,6 +577,7 @@ enum MediaFeatureTests {
         cancelled.cancel()
         suite.expect((try? FileDragConversionEngine.convert(input, to: .bmp, batch: cancelled)) == nil,
                      "A cancelled drag batch does not create another output")
+        testFileDragCompletion(suite, input: input)
 
         let animation = directory.appendingPathComponent("Animation.gif")
         if let animationWriter = CGImageDestinationCreateWithURL(animation as CFURL,
@@ -607,6 +608,56 @@ enum MediaFeatureTests {
                      && ((try? audioOutput?.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0) > 0,
                      "Shift-drag converts real WAV audio through a bounded encoder")
         testBundledConversions(suite, image: input, audio: wave, directory: directory)
+    }
+
+    private static func testFileDragCompletion(_ suite: TestSuite, input: URL) {
+        var session = FileDragBatchSession()
+        guard let partial = session.begin() else {
+            suite.expect(false, "A drag batch can start")
+            return
+        }
+        let output = try? FileDragConversionEngine.convert(input, to: .tiff, batch: partial, engines: nil)
+        let bytes = output.flatMap { try? Data(contentsOf: $0) }
+        suite.expect(bytes?.isEmpty == false, "A partial batch has a real completed output")
+        suite.expect(session.begin() == nil, "A processing batch refuses a second drop")
+        session.cancel()
+        suite.expect((try? FileDragConversionEngine.convert(input, to: .tiff, batch: partial, engines: nil)) == nil,
+                     "Cancelling after the first output stops the next file")
+        suite.expect(session.isProcessing && session.begin() == nil,
+                     "A cancelled batch waits for its queued completion before accepting another drop")
+        suite.expect(session.finish(partial, featureAvailable: true, enabled: false) == .suppressed,
+                     "A disabled partial batch suppresses Finder reveal and completion messages")
+        suite.expect(!session.isProcessing && output.flatMap { try? Data(contentsOf: $0) } == bytes,
+                     "Cancellation clears processing while preserving already completed files")
+
+        guard let next = session.begin() else {
+            suite.expect(false, "Re-enabling conversion accepts a fresh drop")
+            return
+        }
+        suite.expect(session.finish(partial, featureAvailable: true, enabled: true) == .obsolete
+                     && session.isProcessing && !next.isCancelled,
+                     "An old callback cannot reveal files or clear the newer batch")
+        suite.expect(session.finish(next, featureAvailable: true, enabled: true) == .publish,
+                     "An enabled active batch still publishes its completion")
+        suite.expect(session.finish(next, featureAvailable: true, enabled: true) == .obsolete,
+                     "Duplicate completion callbacks cannot reveal files twice")
+
+        guard let encoded = session.begin() else { return }
+        let finalOutput = try? FileDragConversionEngine.convert(input, to: .pdf, batch: encoded, engines: nil)
+        suite.expect(finalOutput.flatMap { CGPDFDocument($0 as CFURL) }?.numberOfPages == 1,
+                     "The final encoder can finish before its UI callback")
+        session.cancel()
+        suite.expect(session.finish(encoded, featureAvailable: true, enabled: true) == .suppressed,
+                     "Disabling and re-enabling before the callback cannot report a cancelled batch as success")
+        suite.expect(finalOutput.map { FileManager.default.fileExists(atPath: $0.path) } == true,
+                     "Late cancellation preserves the finished PDF without revealing it")
+
+        guard let unavailable = session.begin() else { return }
+        suite.expect(session.finish(unavailable, featureAvailable: false, enabled: true) == .suppressed,
+                     "Feature availability is rechecked even when the batch was not explicitly cancelled")
+        guard let disabled = session.begin() else { return }
+        suite.expect(session.finish(disabled, featureAvailable: true, enabled: false) == .suppressed,
+                     "The current preference is rechecked even before stop observes the change")
     }
 
     private static func testBundledConversions(_ suite: TestSuite, image: URL, audio: URL, directory: URL) {

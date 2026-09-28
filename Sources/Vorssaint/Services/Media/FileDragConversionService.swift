@@ -5,8 +5,6 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Small, local formats that can be produced by ImageIO or Apple's bundled
-/// media converters. This is separate from saved image converter profiles.
 /// A passive monitor notices file drags and presents a native drag destination.
 /// No event is swallowed, and an ordinary drag without Shift is unaffected.
 final class FileDragConversionService: ObservableObject {
@@ -22,8 +20,7 @@ final class FileDragConversionService: ObservableObject {
     private var watchdog: Timer?
     private var dragBaseline = 0
     private var sawMouseDown = false
-    private var isProcessing = false
-    private var activeBatch: FileDragBatch?
+    private var batches = FileDragBatchSession()
     private var dropSession: FileDragDropSession?
     private var releaseCleanup: DispatchWorkItem?
 
@@ -74,12 +71,13 @@ final class FileDragConversionService: ObservableObject {
         monitor = nil
         watchdog?.invalidate()
         watchdog = nil
-        activeBatch?.cancel()
+        batches.cancel()
+        status = nil
         dismiss()
     }
 
     private func considerDrag() {
-        guard !isProcessing, panel?.isVisible != true else { return }
+        guard !batches.isProcessing, panel?.isVisible != true else { return }
         let pasteboard = NSPasteboard(name: .drag)
         guard pasteboard.changeCount != dragBaseline else { return }
         let urls = fileURLs(from: pasteboard)
@@ -217,16 +215,15 @@ final class FileDragConversionService: ObservableObject {
     fileprivate func acceptDrop() -> Bool {
         guard AppFeature.mediaTools.isAvailable,
               UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled),
-              let drop = dropSession?.takeDrop() else { return false }
+              !batches.isProcessing,
+              let drop = dropSession?.takeDrop(),
+              let batch = batches.begin() else { return false }
         let urls = drop.inputs
         let format = drop.format
         dismiss()
-        isProcessing = true
         let strings = FileDragStrings.localized(L10n.shared.language)
         status = "\(strings.convert) · \(String(format: strings.fileCountFormat, urls.count))"
         QuickToolHUD.show(icon: "hourglass", message: status ?? "")
-        let batch = FileDragBatch()
-        activeBatch = batch
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let results = urls.map { url -> Result<URL, Error> in
                 guard !batch.isCancelled else { return .failure(CancellationError()) }
@@ -235,8 +232,15 @@ final class FileDragConversionService: ObservableObject {
             }
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.isProcessing = false
-                if self.activeBatch === batch { self.activeBatch = nil }
+                switch self.batches.finish(batch,
+                                          featureAvailable: AppFeature.mediaTools.isAvailable,
+                                          enabled: UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled)) {
+                case .obsolete: return
+                case .suppressed:
+                    self.status = nil
+                    return
+                case .publish: break
+                }
                 let outputs = results.compactMap { try? $0.get() }
                 let failures = results.count - outputs.count
                 let strings = FileDragStrings.localized(L10n.shared.language)
@@ -246,13 +250,13 @@ final class FileDragConversionService: ObservableObject {
                 if let error = results.compactMap({ result -> Error? in
                     if case .failure(let error) = result { return error }
                     return nil
-                }).first, !batch.isCancelled {
+                }).first {
                     self.status = "\(self.status ?? "") · \(error.localizedDescription)"
                 }
                 if !outputs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(outputs) }
                 if failures == 0 {
                     QuickToolHUD.show(icon: "checkmark.circle", message: self.status ?? "")
-                } else if !batch.isCancelled {
+                } else {
                     QuickToolHUD.show(icon: "exclamationmark.triangle",
                                       message: String(format: strings.failedFormat,
                                                       failures, results.count))
