@@ -13,6 +13,7 @@ import VMStatisticsCompat
 
 enum MediaFeatureTests {
     static func run(_ suite: TestSuite) {
+        testFileDragConversion(suite)
         suite.expect(MediaImageFormat.sanitized("pdf") == .pdf,
                "Image converter accepts the PDF format")
         suite.expect(MediaImageFormat.pdf.fileExtension == "pdf",
@@ -493,5 +494,73 @@ enum MediaFeatureTests {
         suite.expect(MediaSupport.recognitionLanguages(for: "zh-HK") == ["zh-Hant", "en-US"],
                "Media OCR maps Hong Kong Chinese to Vision traditional Chinese")
         scratchPaths.forEach { try? FileManager.default.removeItem(at: $0) }
+    }
+
+    private static func testFileDragConversion(_ suite: TestSuite) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vorssaint-drag-conversion-\(UUID().uuidString)", isDirectory: true)
+        do { try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true) }
+        catch {
+            suite.expect(false, "File drag conversion fixtures can be created")
+            return
+        }
+        defer { try? FileManager.default.removeItem(at: directory) }
+        guard let context = CGContext(data: nil, width: 8, height: 8, bitsPerComponent: 8,
+                                      bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+              let image = context.makeImage() else {
+            suite.expect(false, "File drag conversion can make a test image")
+            return
+        }
+        let input = directory.appendingPathComponent("Original.png")
+        guard let writer = CGImageDestinationCreateWithURL(input as CFURL, "public.png" as CFString, 1, nil) else {
+            suite.expect(false, "File drag conversion can make a PNG fixture")
+            return
+        }
+        CGImageDestinationAddImage(writer, image, nil)
+        suite.expect(CGImageDestinationFinalize(writer), "File drag conversion PNG fixture is valid")
+        let original = try? Data(contentsOf: input)
+        let first = try? FileDragConversionEngine.convert(input, to: .jpeg, batch: FileDragBatch())
+        suite.expect(first?.lastPathComponent == "Original-converted.jpg"
+                     && first.flatMap { CGImageSourceCreateWithURL($0 as CFURL, nil) } != nil,
+                     "Shift-drag converts a real image into a separate JPEG")
+        let second = try? FileDragConversionEngine.convert(input, to: .jpeg, batch: FileDragBatch())
+        suite.expect(second != first && second?.lastPathComponent == "Original-converted 2.jpg",
+                     "Repeated Shift-drag conversion keeps every previous copy")
+        suite.expect((try? Data(contentsOf: input)) == original,
+                     "Shift-drag conversion preserves the source bytes")
+        let cancelled = FileDragBatch()
+        cancelled.cancel()
+        suite.expect((try? FileDragConversionEngine.convert(input, to: .bmp, batch: cancelled)) == nil,
+                     "A cancelled drag batch does not create another output")
+
+        let animation = directory.appendingPathComponent("Animation.gif")
+        if let animationWriter = CGImageDestinationCreateWithURL(animation as CFURL,
+                                                                 "com.compuserve.gif" as CFString, 2, nil) {
+            CGImageDestinationAddImage(animationWriter, image, nil)
+            CGImageDestinationAddImage(animationWriter, image, nil)
+            suite.expect(CGImageDestinationFinalize(animationWriter),
+                         "File drag conversion GIF fixture is valid")
+            suite.expect((try? FileDragConversionEngine.convert(animation, to: .png,
+                                                                 batch: FileDragBatch())) == nil,
+                         "Shift-drag refuses to discard animation frames")
+        } else {
+            suite.expect(false, "File drag conversion can make a GIF fixture")
+        }
+
+        let wave = directory.appendingPathComponent("Tone.wav")
+        let waveHeader: [UInt8] = [
+            0x52, 0x49, 0x46, 0x46, 0x64, 0x1f, 0x00, 0x00, // RIFF, 8100 bytes after this
+            0x57, 0x41, 0x56, 0x45, 0x66, 0x6d, 0x74, 0x20, // WAVE fmt
+            0x10, 0, 0, 0, 1, 0, 1, 0,                   // PCM, mono
+            0x40, 0x1f, 0, 0, 0x40, 0x1f, 0, 0,         // 8 kHz, 8 kB/s
+            1, 0, 8, 0, 0x64, 0x61, 0x74, 0x61,        // 8 bit, data
+            0x40, 0x1f, 0, 0,                          // 8000 samples
+        ]
+        try? (Data(waveHeader) + Data(repeating: 128, count: 8_000)).write(to: wave)
+        let audioOutput = try? FileDragConversionEngine.convert(wave, to: .aiff, batch: FileDragBatch())
+        suite.expect(audioOutput?.pathExtension == "aiff"
+                     && ((try? audioOutput?.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0) > 0,
+                     "Shift-drag converts real WAV audio through a bounded encoder")
     }
 }

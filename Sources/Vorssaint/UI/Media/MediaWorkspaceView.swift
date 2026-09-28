@@ -53,6 +53,7 @@ struct MediaWorkspaceView: View {
     @ObservedObject private var l10n = L10n.shared
     @ObservedObject private var media: MediaService
     @ObservedObject private var featureRuntime = FeatureRuntime.shared
+    @ObservedObject private var dragConversion = FileDragConversionService.shared
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.notchPresentation) private var inNotch
 
@@ -301,11 +302,18 @@ struct MediaWorkspaceView: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: compact ? 9 : 12) {
             if !compact {
-                Toggle("Convert files with Shift-drag", isOn: $dragConvertEnabled)
-                    .font(.subheadline)
-                    .onChange(of: dragConvertEnabled) {
-                        FileDragConversionService.shared.syncWithPreferences()
-                    }
+                let strings = FileDragStrings.localized(l10n.language)
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle(strings.setting, isOn: $dragConvertEnabled)
+                        .font(.subheadline)
+                        .onChange(of: dragConvertEnabled) {
+                            dragConversion.syncWithPreferences()
+                        }
+                    Text(dragConversion.status ?? strings.settingHint)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             fileCard
             optionsCard

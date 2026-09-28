@@ -2,56 +2,11 @@
 // Copyright (C) 2026 Vorssaint
 
 import AppKit
-import ImageIO
 import SwiftUI
 import UniformTypeIdentifiers
 
 /// Small, local formats that can be produced by ImageIO or Apple's bundled
 /// media converters. This is separate from saved image converter profiles.
-enum FileDragFormat: String, CaseIterable, Identifiable {
-    case jpeg = "jpg", png, heic, tiff, bmp, gif, webp, avif, pdf
-    case mp4, mov, m4a, wav, aiff, flac
-
-    enum Kind { case image, video, audio }
-
-    var kind: Kind {
-        switch self {
-        case .jpeg, .png, .heic, .tiff, .bmp, .gif, .webp, .avif, .pdf: return .image
-        case .mp4, .mov: return .video
-        case .m4a, .wav, .aiff, .flac: return .audio
-        }
-    }
-
-    var id: String { rawValue }
-    var title: String { rawValue.uppercased() }
-
-    var typeIdentifier: String? {
-        UTType(filenameExtension: rawValue)?.identifier
-    }
-
-    static func availableImageFormats(destinationTypes: Set<String>) -> [Self] {
-        allCases.filter { format in
-            guard format.kind == .image else { return false }
-            guard let type = format.typeIdentifier else { return false }
-            return destinationTypes.contains(type)
-        }
-    }
-
-    static func uniqueOutputURL(for input: URL, format: Self,
-                                fileManager: FileManager = .default) -> URL {
-        let parent = input.deletingLastPathComponent()
-        let stem = input.deletingPathExtension().lastPathComponent
-        let ext = format.rawValue
-        var candidate = parent.appendingPathComponent(stem + "-converted").appendingPathExtension(ext)
-        var counter = 2
-        while fileManager.fileExists(atPath: candidate.path) {
-            candidate = parent.appendingPathComponent("\(stem)-converted-\(counter)").appendingPathExtension(ext)
-            counter += 1
-        }
-        return candidate
-    }
-}
-
 /// A passive monitor notices file drags and presents a native drag destination.
 /// No event is swallowed, and an ordinary drag without Shift is unaffected.
 final class FileDragConversionService: ObservableObject {
@@ -60,6 +15,7 @@ final class FileDragConversionService: ObservableObject {
     @Published private(set) var formats: [FileDragFormat] = []
     @Published private(set) var selected: FileDragFormat?
     @Published private(set) var status: String?
+    @Published private(set) var inputCount = 0
 
     private var monitor: Any?
     private var panel: NSPanel?
@@ -67,6 +23,7 @@ final class FileDragConversionService: ObservableObject {
     private var dragBaseline = 0
     private var sawMouseDown = false
     private var isProcessing = false
+    private var activeBatch: FileDragBatch?
 
     private init() {}
 
@@ -114,6 +71,7 @@ final class FileDragConversionService: ObservableObject {
         monitor = nil
         watchdog?.invalidate()
         watchdog = nil
+        activeBatch?.cancel()
         dismiss()
     }
 
@@ -123,14 +81,9 @@ final class FileDragConversionService: ObservableObject {
         guard pasteboard.changeCount != dragBaseline else { return }
         let urls = fileURLs(from: pasteboard)
         guard !urls.isEmpty else { return }
-        let sourceTypes = Set((CGImageSourceCopyTypeIdentifiers() as? [String]) ?? [])
         let kinds = urls.compactMap { url -> FileDragFormat.Kind? in
             guard let type = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType else { return nil }
-            if sourceTypes.contains(type.identifier) || type.conforms(to: .image) {
-                guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-                      CGImageSourceGetCount(source) == 1 else { return nil }
-                return .image
-            }
+            if type.conforms(to: .image) { return .image }
             if type.conforms(to: .movie) || type.conforms(to: .video) {
                 return ["mp4", "mov", "m4v"].contains(url.pathExtension.lowercased()) ? .video : nil
             }
@@ -141,6 +94,7 @@ final class FileDragConversionService: ObservableObject {
         }
         guard kinds.count == urls.count, let kind = kinds.first,
               kinds.allSatisfy({ $0 == kind }) else { return }
+        inputCount = urls.count
         switch kind {
         case .image:
             let destinationTypes = Set((CGImageDestinationCopyTypeIdentifiers() as? [String]) ?? [])
@@ -222,9 +176,12 @@ final class FileDragConversionService: ObservableObject {
             selected = nil
             return .copy
         }
-        let angle = atan2(dy, dx)
-        let normalized = angle < 0 ? angle + 2 * CGFloat.pi : angle
-        let index = Int((normalized / (2 * CGFloat.pi) * CGFloat(formats.count)).rounded()) % formats.count
+        guard let index = RadialMenuGeometry.highlightedIndex(dx: dx, dyUp: dy,
+                                                              deadZoneRadius: 36,
+                                                              itemCount: formats.count) else {
+            selected = nil
+            return .copy
+        }
         selected = formats[index]
         return .copy
     }
@@ -232,122 +189,40 @@ final class FileDragConversionService: ObservableObject {
     fileprivate func accept(_ pasteboard: NSPasteboard) -> Bool {
         guard AppFeature.mediaTools.isAvailable,
               UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled),
-              let format = selected else { return false }
+              let format = selected, formats.contains(format) else { return false }
         let urls = fileURLs(from: pasteboard)
         guard !urls.isEmpty else { return false }
         dismiss()
         isProcessing = true
+        let batch = FileDragBatch()
+        activeBatch = batch
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let results = urls.map { url -> Result<URL, Error> in
-                guard AppFeature.mediaTools.isAvailable,
-                      UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled) else {
-                    return .failure(CocoaError(.userCancelled))
-                }
-                do { return .success(try Self.convert(url, to: format)) }
+                guard !batch.isCancelled else { return .failure(CancellationError()) }
+                do { return .success(try FileDragConversionEngine.convert(url, to: format, batch: batch)) }
                 catch { return .failure(error) }
             }
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.isProcessing = false
+                if self.activeBatch === batch { self.activeBatch = nil }
                 let outputs = results.compactMap { try? $0.get() }
                 let failures = results.count - outputs.count
-                self.status = failures == 0 ? "Converted \(outputs.count) file(s)" : "Converted \(outputs.count); \(failures) failed"
+                let strings = FileDragStrings.localized(L10n.shared.language)
+                self.status = failures == 0
+                    ? String(format: strings.completedFormat, outputs.count)
+                    : String(format: strings.partialFormat, outputs.count, failures)
                 if !outputs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(outputs) }
-                if failures > 0 {
-                    let alert = NSAlert()
-                    alert.messageText = "Some files could not be converted"
-                    alert.informativeText = "\(failures) of \(results.count) files failed. The original files were not changed."
-                    alert.runModal()
+                if failures == 0 {
+                    QuickToolHUD.show(icon: "checkmark.circle", message: self.status ?? "")
+                } else if !batch.isCancelled {
+                    QuickToolHUD.show(icon: "exclamationmark.triangle",
+                                      message: String(format: strings.failedFormat,
+                                                      failures, results.count))
                 }
             }
         }
         return true
-    }
-
-    private static func convert(_ input: URL, to format: FileDragFormat) throws -> URL {
-        switch format.kind {
-        case .image: return try convertImage(input, to: format)
-        case .video, .audio: return try convertMedia(input, to: format)
-        }
-    }
-
-    private static func convertMedia(_ input: URL, to format: FileDragFormat) throws -> URL {
-        let output = FileDragFormat.uniqueOutputURL(for: input, format: format)
-        let staged = try MediaSupport.temporaryOutputURL(for: output)
-        defer { MediaSupport.discardStagedOutput(staged) }
-        let process = Process()
-        switch format {
-        case .mp4, .mov:
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/avconvert")
-            process.arguments = ["--source", input.path, "--preset", "PresetHighestQuality",
-                                 "--output", staged.path]
-        case .m4a, .wav, .aiff, .flac:
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/afconvert")
-            let settings: (String, String)
-            switch format {
-            case .m4a: settings = ("m4af", "aac ")
-            case .wav: settings = ("WAVE", "LEI16")
-            case .aiff: settings = ("AIFF", "BEI16")
-            case .flac: settings = ("flac", "flac")
-            default: throw CocoaError(.fileWriteUnknown)
-            }
-            process.arguments = ["-f", settings.0, "-d", settings.1, input.path, staged.path]
-        default: throw CocoaError(.fileWriteUnknown)
-        }
-        process.standardOutput = FileHandle.nullDevice
-        process.standardError = FileHandle.nullDevice
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0,
-              (try? staged.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0 > 0 else {
-            throw CocoaError(.fileWriteUnknown)
-        }
-        try MediaSupport.installStagedOutput(staged, at: output, replacingExisting: false)
-        return output
-    }
-
-    private static func convertImage(_ input: URL, to format: FileDragFormat) throws -> URL {
-        guard let type = format.typeIdentifier,
-              let source = CGImageSourceCreateWithURL(input as CFURL, nil),
-              CGImageSourceGetCount(source) > 0,
-              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let sourceSize = MediaSupport.imageDisplaySize(properties: properties),
-              MediaSupport.imageRenderSizeIsSafe(sourceSize),
-              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                  kCGImageSourceCreateThumbnailFromImageAlways: true,
-                  kCGImageSourceCreateThumbnailWithTransform: true,
-                  kCGImageSourceThumbnailMaxPixelSize: 32768,
-              ] as CFDictionary) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        let output = FileDragFormat.uniqueOutputURL(for: input, format: format)
-        let staged = try MediaSupport.temporaryOutputURL(for: output)
-        defer { MediaSupport.discardStagedOutput(staged) }
-        guard let destination = CGImageDestinationCreateWithURL(staged as CFURL, type as CFString, 1, nil) else {
-            throw CocoaError(.fileWriteUnknown)
-        }
-        let rendered: CGImage
-        if format == .jpeg || format == .bmp {
-            let colorSpace = CGColorSpaceCreateDeviceRGB()
-            guard let context = CGContext(data: nil, width: image.width, height: image.height,
-                                          bitsPerComponent: 8, bytesPerRow: 0, space: colorSpace,
-                                          bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else {
-                throw CocoaError(.fileWriteUnknown)
-            }
-            context.setFillColor(NSColor.white.cgColor)
-            context.fill(CGRect(x: 0, y: 0, width: image.width, height: image.height))
-            context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
-            guard let opaque = context.makeImage() else { throw CocoaError(.fileWriteUnknown) }
-            rendered = opaque
-        } else {
-            rendered = image
-        }
-        CGImageDestinationAddImage(destination, rendered, [
-            kCGImageDestinationLossyCompressionQuality: 0.85,
-        ] as CFDictionary)
-        guard CGImageDestinationFinalize(destination) else { throw CocoaError(.fileWriteUnknown) }
-        try MediaSupport.installStagedOutput(staged, at: output, replacingExisting: false)
-        return output
     }
 }
 
@@ -371,28 +246,90 @@ private final class ConversionPanel: NSPanel, NSDraggingDestination {
 
 private struct FileDragConversionWheel: View {
     @ObservedObject var service: FileDragConversionService
+    @ObservedObject private var l10n = L10n.shared
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @AppStorage(DefaultsKey.liquidGlassEnabled) private var liquidGlassEnabled = false
+
+    private var strings: FileDragStrings { .localized(l10n.language) }
 
     var body: some View {
         ZStack {
-            Circle().fill(.regularMaterial)
-            Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1)
+            disc
+            if let selected = service.selected,
+               let index = service.formats.firstIndex(of: selected) {
+                RadialWedgeShape(centerAngle: 2 * .pi * Double(index) / Double(service.formats.count),
+                                 sliceAngle: 2 * .pi / Double(service.formats.count),
+                                 innerRadius: 39, outerRadius: 146)
+                    .fill(RadialGradient(colors: [.accentColor.opacity(0.05), .accentColor.opacity(0.3)],
+                                         center: .center, startRadius: 39, endRadius: 150))
+                    .frame(width: 300, height: 300)
+                    .animation(.easeOut(duration: 0.1), value: index)
+            }
             ForEach(Array(service.formats.enumerated()), id: \.element.id) { index, format in
-                let angle = Double(index) * 2 * Double.pi / Double(max(1, service.formats.count))
+                let position = RadialMenuGeometry.unitPosition(index: index,
+                                                               itemCount: service.formats.count)
                 Text(format.title)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(service.selected == format ? .white : .primary)
-                    .frame(width: 64, height: 32)
-                    .background(service.selected == format ? Color.accentColor : Color.clear,
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(service.selected == format ? Color.white : Color.primary)
+                    .frame(minWidth: 50, minHeight: 32)
+                    .padding(.horizontal, 5)
+                    .background(service.selected == format
+                                ? AnyShapeStyle(Color.accentColor)
+                                : AnyShapeStyle(PanelSurface.raisedFill(for: colorScheme)),
                                 in: Capsule())
-                    .offset(x: cos(angle) * 116, y: -sin(angle) * 116)
+                    .overlay(Capsule().strokeBorder(PanelSurface.raisedBorder(for: colorScheme),
+                                                    lineWidth: 0.8))
+                    .shadow(color: PanelSurface.raisedShadow(for: colorScheme), radius: 5, y: 2)
+                    .offset(x: position.dx * 116, y: -position.dyUp * 116)
             }
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 Image(systemName: "arrow.triangle.2.circlepath")
-                Text(service.selected?.title ?? "Convert")
+                    .font(.system(size: 17, weight: .semibold))
+                Text(service.selected?.title ?? strings.convert)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                Text(String(format: strings.fileCountFormat, service.inputCount))
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
-            .font(.system(size: 12, weight: .semibold))
+            .frame(width: 82, height: 82)
+            .background(PanelSurface.controlFill(for: colorScheme), in: Circle())
         }
         .frame(width: 332, height: 332)
-        .accessibilityLabel("Drop on a format to convert a copy beside the original")
+        .accessibilityLabel(strings.dropHint)
+    }
+
+    @ViewBuilder private var disc: some View {
+#if compiler(>=6.2)
+        if #available(macOS 26.0, *), liquidGlassEnabled, !reduceTransparency {
+            Circle().fill(Color.clear).glassEffect(.regular, in: Circle())
+                .overlay(Circle().fill(PanelSurface.baseFill(for: colorScheme).opacity(0.4)))
+                .modifier(DiscRim(colorScheme: colorScheme))
+        } else {
+            standardDisc
+        }
+#else
+        standardDisc
+#endif
+    }
+
+    private var standardDisc: some View {
+        Circle().fill(reduceTransparency
+                      ? AnyShapeStyle(colorScheme == .light ? Color.white : Color.black)
+                      : AnyShapeStyle(.regularMaterial))
+            .overlay(Circle().fill(PanelSurface.baseFill(for: colorScheme)))
+            .modifier(DiscRim(colorScheme: colorScheme))
+    }
+}
+
+private struct DiscRim: ViewModifier {
+    let colorScheme: ColorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(Circle().strokeBorder(PanelSurface.rimHighlight(for: colorScheme), lineWidth: 1.2))
+            .overlay(Circle().strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.8))
+            .frame(width: 300, height: 300)
+            .shadow(color: .black.opacity(colorScheme == .light ? 0.22 : 0.55), radius: 24, y: 8)
     }
 }
