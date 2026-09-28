@@ -73,6 +73,7 @@ struct MediaWorkspaceView: View {
     @AppStorage(DefaultsKey.mediaGIFTargetMegabytes) private var gifTargetMegabytes = 10
 
     @AppStorage(DefaultsKey.mediaImageQuality) private var imageQuality = 0.72
+    @AppStorage(DefaultsKey.mediaDragConvertEnabled) private var dragConvertEnabled = false
     @AppStorage(DefaultsKey.mediaImageMaxDimension) private var imageMaxDimension = 1600
     @AppStorage(DefaultsKey.mediaImageFormat) private var imageFormatRaw = MediaImageFormat.jpeg.rawValue
     @AppStorage(DefaultsKey.mediaImageStripMetadata) private var imageStripMetadata = true
@@ -299,6 +300,13 @@ struct MediaWorkspaceView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: compact ? 9 : 12) {
+            if !compact {
+                Toggle("Convert files with Shift-drag", isOn: $dragConvertEnabled)
+                    .font(.subheadline)
+                    .onChange(of: dragConvertEnabled) {
+                        FileDragConversionService.shared.syncWithPreferences()
+                    }
+            }
             fileCard
             optionsCard
             actionRow

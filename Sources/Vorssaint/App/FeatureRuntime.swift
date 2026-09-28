@@ -238,6 +238,7 @@ final class FeatureRuntime: ObservableObject {
         },
         .mediaTools: {
             NotchFileToolsService.shared.syncWithPreferences()
+            FileDragConversionService.shared.syncWithPreferences()
             guard !AppFeature.mediaTools.isAvailable else { return }
             MediaService.shared.cancel()
             ScreenRecorderService.shared.closeEditors(ownedBy: .mediaTools)
