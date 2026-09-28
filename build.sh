@@ -257,6 +257,8 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Media/MediaEngineBundle.swift
         Sources/Vorssaint/Services/Media/FileDragDropSession.swift
         Sources/Vorssaint/Services/Media/FileDragBatchSession.swift
+        Sources/Vorssaint/Services/Media/PDFTools.swift
+        Sources/Vorssaint/Core/PDFToolStrings.swift
         Sources/Vorssaint/Core/MediaEngineStrings.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
         Sources/Vorssaint/Core/QuitProtectionStrings.swift

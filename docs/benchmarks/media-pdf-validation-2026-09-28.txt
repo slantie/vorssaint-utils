@@ -1,0 +1,31 @@
+PDF increment verification (2026-09-28)
+Media suite after added annotation/JPEG/image-only Word fixtures: 242 checks passed.
+Repository suite after explicit POSIX output-filename formatting: 246 checks passed.
+Debug installed and optimized bundled app builds: passed.
+Both app selftests: SELFTEST OK.
+The full-suite run before the filename fix had 18 failures of 69740 checks.
+The repository failure was corrected and its suite rerun successfully.
+The remaining 17 notch/switcher failures reproduced on archived pre-PDF b48e9fee sources under the same environment.
+UI/Finder PDF testing remains pending because the Mac is locked.
+
+Pre-PDF baseline result:
+notch: FAILED (29052 checks, 14.93s)
+switcher: FAILED (263 checks, 8.06s)
+TESTS FAILED (17 of 69659):
+  - Tests/NotchCompactTests.swift:252: selection 12 remains visible after navigating or changing to 2 rail rows
+  - Tests/NotchCompactTests.swift:252: selection 900 remains visible after navigating or changing to 2 rail rows
+  - Tests/NotchCompactTests.swift:252: selection 901 remains visible after navigating or changing to 2 rail rows
+  - Tests/NotchCompactTests.swift:252: selection 901 remains visible after navigating or changing to 1 rail rows
+  - Tests/SwitcherScrollTests.swift:166: previews boundary close/next app at unchanged index: selected 1-0 at 0.0...220.0 must fit 1392.0...1844.0
+  - Tests/SwitcherScrollTests.swift:166: previews replacing search result/new selection at unchanged index: selected 1-0 at 0.0...220.0 must fit 1392.0...1844.0
+  - Tests/SwitcherScrollTests.swift:166: previews navigation/wrap first: selected 0-0 at 0.0...220.0 must fit 1392.0...1844.0
+  - Tests/SwitcherScrollTests.swift:166: previews navigation/second app first: selected 1-0 at 0.0...220.0 must fit 1392.0...1844.0
+  - Tests/SwitcherScrollTests.swift:166: previews navigation/remove earlier card: selected 1-6 at 1160.0...1380.0 must fit 1392.0...1844.0
+  - Tests/SwitcherScrollTests.swift:166: focused app small/overflow wraps to first: selected 0-0 at 0.0...165.0 must fit 121.0...687.0
+  - Tests/SwitcherScrollTests.swift:166: focused app normal/overflow wraps to first: selected 0-0 at 0.0...220.0 must fit 366.0...916.0
+  - Tests/SwitcherScrollTests.swift:166: focused app large/overflow wraps to first: selected 0-0 at 0.0...252.99999999999997 must fit 512.5...1053.5
+  - Tests/SwitcherScrollTests.swift:166: focused app xlarge/overflow wraps to first: selected 0-0 at 0.0...252.99999999999997 must fit 512.5...1053.5
+  - Tests/SwitcherScrollTests.swift:166: titles boundary close/next app at unchanged index: selected 1-0 at 1.0...181.0 must fit 930.0...1484.0
+  - Tests/SwitcherScrollTests.swift:166: titles replacing search result/new selection at unchanged index: selected 1-0 at 1.0...181.0 must fit 930.0...1484.0
+  - Tests/SwitcherScrollTests.swift:166: titles navigation/wrap first: selected 0-0 at 1.0...181.0 must fit 930.0...1484.0
+  - Tests/SwitcherScrollTests.swift:166: titles navigation/second app first: selected 1-0 at 1.0...181.0 must fit 930.0...1484.0

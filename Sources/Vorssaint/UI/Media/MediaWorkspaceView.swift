@@ -315,6 +315,18 @@ struct MediaWorkspaceView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            Menu {
+                ForEach(PDFTool.allCases) { tool in
+                    Button(PDFToolStrings.localized(l10n.language).label(tool)) {
+                        PDFToolController.shared.chooseInputs(tool: tool)
+                    }
+                }
+            } label: {
+                Label(PDFToolStrings.localized(l10n.language)[.tools], systemImage: "doc.richtext")
+            }
+            .disabled(!AppFeature.mediaTools.isAvailable)
+            Text(PDFToolStrings.localized(l10n.language)[.dragHint])
+                .font(.caption).foregroundStyle(.secondary)
             fileCard
             optionsCard
             actionRow

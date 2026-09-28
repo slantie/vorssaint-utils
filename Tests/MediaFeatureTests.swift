@@ -14,6 +14,7 @@ import VMStatisticsCompat
 enum MediaFeatureTests {
     static func run(_ suite: TestSuite) {
         testFileDragConversion(suite)
+        PDFToolTests.run(suite)
         for language in AppLanguage.allCases {
             let strings = MediaEngineStrings.localized(language)
             suite.expect(!strings.conversion.isEmpty && !strings.notices.isEmpty && !strings.sources.isEmpty,
@@ -525,7 +526,7 @@ enum MediaFeatureTests {
         CGImageDestinationAddImage(writer, image, nil)
         suite.expect(CGImageDestinationFinalize(writer), "File drag conversion PNG fixture is valid")
         let original = try? Data(contentsOf: input)
-        var drop = FileDragDropSession(inputs: [input], formats: [.jpeg, .pdf])
+        var drop = FileDragDropSession<FileDragFormat>(inputs: [input], formats: [.jpeg, .pdf])
         drop.select(.pdf)
         drop.releaseMouse()
         drop.select(nil)
@@ -551,12 +552,12 @@ enum MediaFeatureTests {
                      "Repeated PNG to PDF drops preserve the previous PDF")
         suite.expect(drop.takeDrop() == nil,
                      "Duplicate destination callbacks cannot convert the same drop twice")
-        var cancelledDrop = FileDragDropSession(inputs: [input], formats: [.pdf])
+        var cancelledDrop = FileDragDropSession<FileDragFormat>(inputs: [input], formats: [.pdf])
         cancelledDrop.select(.pdf)
         cancelledDrop.releaseMouse()
         suite.expect(!cancelledDrop.prepare(formatAtDrop: nil) && cancelledDrop.takeDrop() == nil,
                      "Releasing in the hub or outside a format does not convert a stale selection")
-        var preparedDrop = FileDragDropSession(inputs: [input], formats: [.jpeg, .pdf])
+        var preparedDrop = FileDragDropSession<FileDragFormat>(inputs: [input], formats: [.jpeg, .pdf])
         preparedDrop.select(.jpeg)
         suite.expect(preparedDrop.prepare(formatAtDrop: .pdf),
                      "Drop preparation uses the final pointer position")

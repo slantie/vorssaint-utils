@@ -8,6 +8,18 @@ import Foundation
 @main
 struct MetricsTests {
     static func main() {
+        if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "--pdf-fixtures" {
+            do {
+                let directory = URL(fileURLWithPath: CommandLine.arguments[2])
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                for (name, labels) in [("Three pages", ["ALPHA", "BETA", "GAMMA"]), ("Two pages", ["DELTA", "EPSILON"])] {
+                    let output = MediaSupport.uniqueOutputURL(in: directory, baseName: name, fileExtension: "pdf")
+                    try PDFToolTests.fixture(output, labels: labels)
+                    print(output.path)
+                }
+                exit(0)
+            } catch { fputs("\(error)\n", stderr); exit(1) }
+        }
         if CommandLine.arguments.contains("--media-convert-benchmark") {
             let arguments = CommandLine.arguments
             guard arguments.count == 4 || (arguments.count == 6 && arguments[4] == "--engines"),

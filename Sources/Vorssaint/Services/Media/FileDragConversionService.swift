@@ -10,8 +10,8 @@ import UniformTypeIdentifiers
 final class FileDragConversionService: ObservableObject {
     static let shared = FileDragConversionService()
 
-    @Published private(set) var formats: [FileDragFormat] = []
-    @Published private(set) var selected: FileDragFormat?
+    @Published private(set) var actions: [FileDragAction] = []
+    @Published private(set) var selected: FileDragAction?
     @Published private(set) var status: String?
     @Published private(set) var inputCount = 0
 
@@ -21,12 +21,14 @@ final class FileDragConversionService: ObservableObject {
     private var dragBaseline = 0
     private var sawMouseDown = false
     private var batches = FileDragBatchSession()
-    private var dropSession: FileDragDropSession?
+    private var dropSession: FileDragDropSession<FileDragAction>?
+    private var toolsMode = false
     private var releaseCleanup: DispatchWorkItem?
 
     private init() {}
 
     func syncWithPreferences() {
+        PDFToolController.shared.syncWithPreferences()
         let wanted = AppFeature.mediaTools.isAvailable
             && UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled)
         if wanted {
@@ -55,12 +57,11 @@ final class FileDragConversionService: ObservableObject {
                 if !self.sawMouseDown {
                     self.sawMouseDown = true
                 }
-                guard event.modifierFlags.contains(.shift),
-                      !event.modifierFlags.contains(.option) else {
+                guard event.modifierFlags.contains(.shift) else {
                     self.dismiss()
                     return
                 }
-                self.considerDrag()
+                self.considerDrag(tools: event.modifierFlags.contains(.option))
             default: break
             }
         }
@@ -76,11 +77,13 @@ final class FileDragConversionService: ObservableObject {
         dismiss()
     }
 
-    private func considerDrag() {
-        guard !batches.isProcessing, panel?.isVisible != true else { return }
+    private func considerDrag(tools: Bool) {
+        guard !batches.isProcessing else { return }
+        let alreadyVisible = panel?.isVisible == true
+        if alreadyVisible && toolsMode == tools { return }
         let pasteboard = NSPasteboard(name: .drag)
-        guard pasteboard.changeCount != dragBaseline else { return }
-        let urls = fileURLs(from: pasteboard)
+        guard alreadyVisible || pasteboard.changeCount != dragBaseline else { return }
+        let urls = dropSession?.inputs ?? fileURLs(from: pasteboard)
         guard !urls.isEmpty else { return }
         let kinds = urls.compactMap { url -> FileDragFormat.Kind? in
             guard let kind = FileDragFormat.inputKind(for: url) else { return nil }
@@ -93,6 +96,7 @@ final class FileDragConversionService: ObservableObject {
         guard kinds.count == urls.count, let kind = kinds.first,
               kinds.allSatisfy({ $0 == kind }) else { return }
         inputCount = urls.count
+        var formats: [FileDragFormat]
         switch kind {
         case .image:
             let destinationTypes = Set((CGImageDestinationCopyTypeIdentifiers() as? [String]) ?? [])
@@ -104,10 +108,15 @@ final class FileDragConversionService: ObservableObject {
             formats = MediaEngineBundle.bundled == nil ? [.mp4, .mov] : [.mp4, .mov, .mkv, .webm, .avi, .wmv, .gif, .mp3]
         case .audio:
             formats = MediaEngineBundle.bundled == nil ? [.m4a, .wav, .aiff, .flac] : [.mp3, .m4a, .wav, .flac, .ogg, .opus, .aiff, .wma]
+        case .document: formats = [.docx, .jpeg, .png, .txt]
         }
-        guard !formats.isEmpty else { return }
-        dropSession = FileDragDropSession(inputs: urls, formats: formats)
-        show()
+        actions = tools && kind == .document ? PDFTool.allCases.map { .pdfTool($0) }
+            : (tools ? [] : formats.map { .convert($0) })
+        guard !actions.isEmpty else { dismiss(); return }
+        toolsMode = tools
+        selected = nil
+        dropSession = FileDragDropSession(inputs: urls, formats: actions)
+        if !alreadyVisible { show() }
     }
 
     private func fileURLs(from pasteboard: NSPasteboard) -> [URL] {
@@ -191,19 +200,19 @@ final class FileDragConversionService: ObservableObject {
         return .copy
     }
 
-    private func format(at location: CGPoint, in window: NSWindow) -> FileDragFormat? {
+    private func format(at location: CGPoint, in window: NSWindow) -> FileDragAction? {
         let center = CGPoint(x: window.frame.width / 2, y: window.frame.height / 2)
         let dx = location.x - center.x
         let dy = location.y - center.y
-        guard hypot(dx, dy) > 36, !formats.isEmpty else {
+        guard hypot(dx, dy) > 36, !actions.isEmpty else {
             return nil
         }
         guard let index = RadialMenuGeometry.highlightedIndex(dx: dx, dyUp: dy,
                                                               deadZoneRadius: 36,
-                                                              itemCount: formats.count) else {
+                                                              itemCount: actions.count) else {
             return nil
         }
-        return formats[index]
+        return actions[index]
     }
 
     fileprivate func prepareDrop(at location: CGPoint, in window: NSWindow) -> Bool {
@@ -216,11 +225,14 @@ final class FileDragConversionService: ObservableObject {
         guard AppFeature.mediaTools.isAvailable,
               UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled),
               !batches.isProcessing,
-              let drop = dropSession?.takeDrop(),
-              let batch = batches.begin() else { return false }
+              let drop = dropSession?.takeDrop() else { return false }
         let urls = drop.inputs
-        let format = drop.format
         dismiss()
+        if case .pdfTool(let tool) = drop.format {
+            PDFToolController.shared.open(inputs: urls, tool: tool, requiresDragEnabled: true)
+            return true
+        }
+        guard case .convert(let format) = drop.format, let batch = batches.begin() else { return false }
         let strings = FileDragStrings.localized(L10n.shared.language)
         status = "\(strings.convert) · \(String(format: strings.fileCountFormat, urls.count))"
         QuickToolHUD.show(icon: "hourglass", message: status ?? "")
@@ -293,24 +305,26 @@ private struct FileDragConversionWheel: View {
     @AppStorage(DefaultsKey.liquidGlassEnabled) private var liquidGlassEnabled = false
 
     private var strings: FileDragStrings { .localized(l10n.language) }
+    private var hasPDFTools: Bool { service.actions.contains { if case .pdfTool = $0 { return true }; return false } }
+    private var pdfStrings: PDFToolStrings { .localized(l10n.language) }
 
     var body: some View {
         ZStack {
             disc
             if let selected = service.selected,
-               let index = service.formats.firstIndex(of: selected) {
-                RadialWedgeShape(centerAngle: 2 * .pi * Double(index) / Double(service.formats.count),
-                                 sliceAngle: 2 * .pi / Double(service.formats.count),
+               let index = service.actions.firstIndex(of: selected) {
+                RadialWedgeShape(centerAngle: 2 * .pi * Double(index) / Double(service.actions.count),
+                                 sliceAngle: 2 * .pi / Double(service.actions.count),
                                  innerRadius: 39, outerRadius: 146)
                     .fill(RadialGradient(colors: [.accentColor.opacity(0.05), .accentColor.opacity(0.3)],
                                          center: .center, startRadius: 39, endRadius: 150))
                     .frame(width: 300, height: 300)
                     .animation(.easeOut(duration: 0.1), value: index)
             }
-            ForEach(Array(service.formats.enumerated()), id: \.element.id) { index, format in
+            ForEach(Array(service.actions.enumerated()), id: \.element.id) { index, format in
                 let position = RadialMenuGeometry.unitPosition(index: index,
-                                                               itemCount: service.formats.count)
-                Text(format.title)
+                                                               itemCount: service.actions.count)
+                Text(format.title(l10n.language))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundStyle(service.selected == format ? Color.white : Color.primary)
                     .frame(minWidth: 50, minHeight: 32)
@@ -325,9 +339,9 @@ private struct FileDragConversionWheel: View {
                     .offset(x: position.dx * 116, y: -position.dyUp * 116)
             }
             VStack(spacing: 4) {
-                Image(systemName: "arrow.triangle.2.circlepath")
+                Image(systemName: hasPDFTools ? "doc.richtext" : "arrow.triangle.2.circlepath")
                     .font(.system(size: 17, weight: .semibold))
-                Text(service.selected?.title ?? strings.convert)
+                Text(service.selected?.title(l10n.language) ?? (hasPDFTools ? pdfStrings[.tools] : strings.convert))
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                 Text(String(format: strings.fileCountFormat, service.inputCount))
                     .font(.system(size: 9, weight: .medium))
@@ -337,7 +351,7 @@ private struct FileDragConversionWheel: View {
             .background(PanelSurface.controlFill(for: colorScheme), in: Circle())
         }
         .frame(width: 332, height: 332)
-        .accessibilityLabel(strings.dropHint)
+        .accessibilityLabel(hasPDFTools ? pdfStrings[.dragHint] : strings.dropHint)
     }
 
     @ViewBuilder private var disc: some View {

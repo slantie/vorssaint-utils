@@ -6,20 +6,20 @@ import Foundation
 /// AppKit delivers the destination callbacks separately from the passive
 /// mouse monitor. Releasing the mouse must retain the highlighted format until
 /// prepare/perform have captured the drop, regardless of callback order.
-struct FileDragDropSession {
+struct FileDragDropSession<Choice: Equatable> {
     struct Drop {
         let inputs: [URL]
-        let format: FileDragFormat
+        let format: Choice
     }
 
     let inputs: [URL]
-    let formats: [FileDragFormat]
-    private(set) var selected: FileDragFormat?
+    let formats: [Choice]
+    private(set) var selected: Choice?
     private(set) var mouseReleased = false
     private var prepared: Drop?
     private var consumed = false
 
-    mutating func select(_ format: FileDragFormat?) {
+    mutating func select(_ format: Choice?) {
         guard !mouseReleased, prepared == nil, !consumed else { return }
         selected = format.flatMap { formats.contains($0) ? $0 : nil }
     }
@@ -28,7 +28,7 @@ struct FileDragDropSession {
         mouseReleased = true
     }
 
-    mutating func prepare(formatAtDrop: FileDragFormat?) -> Bool {
+    mutating func prepare(formatAtDrop: Choice?) -> Bool {
         guard !consumed, !inputs.isEmpty,
               let format = formatAtDrop, formats.contains(format) else {
             prepared = nil

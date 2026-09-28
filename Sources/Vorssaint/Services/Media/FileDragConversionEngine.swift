@@ -9,14 +9,16 @@ enum FileDragFormat: String, CaseIterable, Identifiable {
     case jpeg = "jpg", png, heic, tiff, bmp, gif, webp, avif, pdf
     case mp4, mov, mkv, webm, avi, wmv
     case mp3, m4a, wav, aiff, flac, ogg, opus, wma
+    case txt, docx
 
-    enum Kind { case image, video, audio }
+    enum Kind { case image, video, audio, document }
 
     var kind: Kind {
         switch self {
         case .jpeg, .png, .heic, .tiff, .bmp, .gif, .webp, .avif, .pdf: return .image
         case .mp4, .mov, .mkv, .webm, .avi, .wmv: return .video
         case .mp3, .m4a, .wav, .aiff, .flac, .ogg, .opus, .wma: return .audio
+        case .txt, .docx: return .document
         }
     }
 
@@ -37,9 +39,11 @@ enum FileDragFormat: String, CaseIterable, Identifiable {
 
     static func inputKind(for input: URL) -> Kind? {
         let ext = input.pathExtension.lowercased()
+        if ext == "pdf" { return .document }
         if ["mp4", "mov", "m4v", "mkv", "webm", "avi", "wmv"].contains(ext) { return .video }
         if ["mp3", "m4a", "wav", "aiff", "aif", "flac", "ogg", "opus", "wma"].contains(ext) { return .audio }
         guard let type = (try? input.resourceValues(forKeys: [.contentTypeKey]))?.contentType else { return nil }
+        if type.conforms(to: .pdf) { return .document }
         if type.conforms(to: .image) { return .image }
         if type.conforms(to: .movie) || type.conforms(to: .video) { return .video }
         if type.conforms(to: .audio) { return .audio }
@@ -93,9 +97,11 @@ enum FileDragConversionEngine {
         guard let values = try? input.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
               values.isRegularFile == true, values.isSymbolicLink != true,
               let kind = FileDragFormat.inputKind(for: input),
-              kind == format.kind || (kind == .video && (format == .gif || format == .mp3)) else {
+              kind == format.kind || (kind == .video && (format == .gif || format == .mp3))
+                || (kind == .document && [.jpeg, .png].contains(format)) else {
             throw CocoaError(.fileReadUnsupportedScheme)
         }
+        if kind == .document { return try PDFTools.convert(input, to: format, batch: batch) }
         if let engines, format.kind == .video || format.kind == .audio
             || (format == .gif && kind == .video) {
             return try engines.convert(input, to: format, batch: batch)
@@ -112,6 +118,7 @@ enum FileDragConversionEngine {
         switch format.kind {
         case .image: return try convertImage(input, to: format, batch: batch)
         case .video, .audio: return try convertMedia(input, to: format, batch: batch)
+        case .document: throw CocoaError(.fileReadUnsupportedScheme)
         }
     }
 

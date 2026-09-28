@@ -73,7 +73,23 @@ check retained audio, preserve source bytes and reject symbolic links. Image
 fixtures check dimensions and retained WebP/AVIF alpha. Cancellation, collisions,
 PNG-to-PDF and drag-release ordering retain their native regression checks.
 
-The full requested catalog is **not complete**: document/subtitle/archive
-conversion and the Shift–Option tool editors remain. The earlier impact report
+PDFs now use native PDFKit, without another bundled dependency. Shift-drag
+offers DOCX, JPG, PNG and TXT. Multi-page image exports create a new folder
+containing every page at 300 DPI. Word export retains selectable text in reading
+order, with page images when text is absent; it does not reconstruct the original
+layout or perform OCR. Scanned PDFs consequently need OCR before TXT export.
+
+Shift–Option dragging PDFs opens split, merge, page organization, compression
+or standard document metadata tools. The same tools are accessible from the
+Media view's PDF tools menu. Merge starts with Finder's selection order;
+organization supports drag reordering, earlier/later controls, rotation,
+duplication and removal. Split saves one PDF per page in a new folder.
+Compression optimizes embedded images and may not reduce the size of every
+document. Metadata edits title, author, subject and keywords; it does not claim
+to remove every embedded metadata object. Password-locked or restricted inputs
+are rejected. Originals and existing outputs are preserved.
+
+The full requested catalog is **not complete**: subtitle/archive conversion
+and the remaining image/video/audio tool editors remain. The earlier impact report
 still describes the original native feature and its measurement prototype;
 the finished feature needs new comparable size and performance measurements.

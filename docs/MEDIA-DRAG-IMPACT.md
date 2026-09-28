@@ -8,17 +8,34 @@ engine integration. The full Tangerine tool catalog
 and Shift–Option editors are still being implemented. The prototype is not a
 release build and does not establish the final size of that full feature.
 
-## Compatible bundled-runtime update
+## Native PDF tools increment
+
+The optimized app with PDF conversion and the split/merge/organize/compress/
+metadata workspace measures **110.15 MB**, with a comparable **39.36 MB** ZIP.
+Relative to the earlier compatible-engine build below, this adds **0.42 MB**
+of app files and **0.11 MB** of ZIP bytes. PDFKit adds no third-party dependency;
+the six bundled source projects and private engines are unchanged. Relative to
+the original baseline, the app increment is 34.87 MB (46.32%) and the ZIP
+increment is 15.27 MB. These are still intermediate-catalog measurements.
+
+See [raw PDF size evidence](benchmarks/media-pdf-impact-2026-09-28.json) and
+[PDF validation results](benchmarks/media-pdf-validation-2026-09-28.txt).
+The 242-check media suite and debug/optimized selftests pass. Live PDF window
+and Finder gesture verification is pending because the Mac was locked.
+No new PDF runtime or idle performance claim is made from build or size checks.
+
+## Compatible bundled-runtime update before PDF tools
 
 The source-built runtime now replaces the incompatible Homebrew prototype.
 This is an **intermediate implementation**, with audio/video conversion and
-WebP/AVIF integrated; document/archive/subtitle routes and Shift–Option editors
+WebP/AVIF integrated; PDF routes were added in the increment above. Archive,
+subtitle and the remaining Shift–Option editors
 remain. The measurements below do not establish the finished catalog’s size.
 
 | Optimized variant | App files | Comparable ZIP |
 | --- | ---: | ---: |
 | Baseline without feature (`9be00fbc`) | 75.28 MB | 24.09 MB |
-| Current feature with compatible bundled engines | 109.73 MB | 39.25 MB |
+| Compatible bundled engines before PDF tools | 109.73 MB | 39.25 MB |
 
 The current increment is **34.45 MB / 45.76%** in app files and **15.16 MB**
 in the comparable ZIP. Its private runtime, including notices and manifest,
