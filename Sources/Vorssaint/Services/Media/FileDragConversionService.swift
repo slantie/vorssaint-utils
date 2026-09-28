@@ -24,6 +24,8 @@ final class FileDragConversionService: ObservableObject {
     private var sawMouseDown = false
     private var isProcessing = false
     private var activeBatch: FileDragBatch?
+    private var dropSession: FileDragDropSession?
+    private var releaseCleanup: DispatchWorkItem?
 
     private init() {}
 
@@ -45,12 +47,13 @@ final class FileDragConversionService: ObservableObject {
             guard let self else { return }
             switch event.type {
             case .leftMouseDown:
+                self.dismiss()
                 self.dragBaseline = NSPasteboard(name: .drag).changeCount
                 self.sawMouseDown = true
             case .leftMouseUp:
                 self.sawMouseDown = false
                 self.dragBaseline = NSPasteboard(name: .drag).changeCount
-                self.dismiss()
+                self.mouseReleased()
             case .leftMouseDragged:
                 if !self.sawMouseDown {
                     self.sawMouseDown = true
@@ -105,6 +108,7 @@ final class FileDragConversionService: ObservableObject {
             formats = [.m4a, .wav, .aiff, .flac]
         }
         guard !formats.isEmpty else { return }
+        dropSession = FileDragDropSession(inputs: urls, formats: formats)
         show()
     }
 
@@ -137,18 +141,33 @@ final class FileDragConversionService: ObservableObject {
             guard CGEventSource.buttonState(.combinedSessionState, button: .left) else {
                 self?.dragBaseline = NSPasteboard(name: .drag).changeCount
                 self?.sawMouseDown = false
-                self?.dismiss()
+                self?.mouseReleased()
                 return
             }
         }
     }
 
     private func dismiss() {
-        guard panel?.isVisible == true else { return }
+        releaseCleanup?.cancel()
+        releaseCleanup = nil
         panel?.orderOut(nil)
+        dropSession = nil
         selected = nil
         watchdog?.invalidate()
         watchdog = nil
+    }
+
+    private func mouseReleased() {
+        guard dropSession != nil, releaseCleanup == nil else { return }
+        dropSession?.releaseMouse()
+        watchdog?.invalidate()
+        watchdog = nil
+        // A passive mouse-up callback (or the button-state watchdog) can run
+        // before AppKit's prepare/perform callbacks. Keep the destination and
+        // its selection alive for that handoff; an abandoned drag still closes.
+        let cleanup = DispatchWorkItem { [weak self] in self?.dismiss() }
+        releaseCleanup = cleanup
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: cleanup)
     }
 
     private func ensurePanel() -> NSPanel {
@@ -169,31 +188,43 @@ final class FileDragConversionService: ObservableObject {
     }
 
     fileprivate func updateSelection(at location: CGPoint, in window: NSWindow) -> NSDragOperation {
+        dropSession?.select(format(at: location, in: window))
+        selected = dropSession?.selected
+        return .copy
+    }
+
+    private func format(at location: CGPoint, in window: NSWindow) -> FileDragFormat? {
         let center = CGPoint(x: window.frame.width / 2, y: window.frame.height / 2)
         let dx = location.x - center.x
         let dy = location.y - center.y
         guard hypot(dx, dy) > 36, !formats.isEmpty else {
-            selected = nil
-            return .copy
+            return nil
         }
         guard let index = RadialMenuGeometry.highlightedIndex(dx: dx, dyUp: dy,
                                                               deadZoneRadius: 36,
                                                               itemCount: formats.count) else {
-            selected = nil
-            return .copy
+            return nil
         }
-        selected = formats[index]
-        return .copy
+        return formats[index]
     }
 
-    fileprivate func accept(_ pasteboard: NSPasteboard) -> Bool {
+    fileprivate func prepareDrop(at location: CGPoint, in window: NSWindow) -> Bool {
+        let prepared = dropSession?.prepare(formatAtDrop: format(at: location, in: window)) ?? false
+        selected = dropSession?.selected
+        return prepared
+    }
+
+    fileprivate func acceptDrop() -> Bool {
         guard AppFeature.mediaTools.isAvailable,
               UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled),
-              let format = selected, formats.contains(format) else { return false }
-        let urls = fileURLs(from: pasteboard)
-        guard !urls.isEmpty else { return false }
+              let drop = dropSession?.takeDrop() else { return false }
+        let urls = drop.inputs
+        let format = drop.format
         dismiss()
         isProcessing = true
+        let strings = FileDragStrings.localized(L10n.shared.language)
+        status = "\(strings.convert) · \(String(format: strings.fileCountFormat, urls.count))"
+        QuickToolHUD.show(icon: "hourglass", message: status ?? "")
         let batch = FileDragBatch()
         activeBatch = batch
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -212,6 +243,12 @@ final class FileDragConversionService: ObservableObject {
                 self.status = failures == 0
                     ? String(format: strings.completedFormat, outputs.count)
                     : String(format: strings.partialFormat, outputs.count, failures)
+                if let error = results.compactMap({ result -> Error? in
+                    if case .failure(let error) = result { return error }
+                    return nil
+                }).first, !batch.isCancelled {
+                    self.status = "\(self.status ?? "") · \(error.localizedDescription)"
+                }
                 if !outputs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(outputs) }
                 if failures == 0 {
                     QuickToolHUD.show(icon: "checkmark.circle", message: self.status ?? "")
@@ -236,11 +273,11 @@ private final class ConversionPanel: NSPanel, NSDraggingDestination {
     }
 
     func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        FileDragConversionService.shared.selected != nil
+        FileDragConversionService.shared.prepareDrop(at: sender.draggingLocation, in: self)
     }
 
     func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        FileDragConversionService.shared.accept(sender.draggingPasteboard)
+        FileDragConversionService.shared.acceptDrop()
     }
 }
 

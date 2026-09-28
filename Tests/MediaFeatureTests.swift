@@ -520,6 +520,45 @@ enum MediaFeatureTests {
         CGImageDestinationAddImage(writer, image, nil)
         suite.expect(CGImageDestinationFinalize(writer), "File drag conversion PNG fixture is valid")
         let original = try? Data(contentsOf: input)
+        var drop = FileDragDropSession(inputs: [input], formats: [.jpeg, .pdf])
+        drop.select(.pdf)
+        drop.releaseMouse()
+        drop.select(nil)
+        suite.expect(drop.selected == .pdf,
+                     "Mouse-up before AppKit's drop callbacks retains the chosen format")
+        suite.expect(drop.prepare(formatAtDrop: .pdf),
+                     "A PNG to PDF drop can be prepared after mouse-up")
+        let accepted = drop.takeDrop()
+        let pdf = accepted.flatMap { drop in
+            try? FileDragConversionEngine.convert(drop.inputs[0], to: drop.format, batch: FileDragBatch())
+        }
+        let document = pdf.flatMap { CGPDFDocument($0 as CFURL) }
+        suite.expect(pdf?.deletingLastPathComponent() == input.deletingLastPathComponent()
+                     && pdf?.lastPathComponent == "Original-converted.pdf"
+                     && document?.numberOfPages == 1,
+                     "Releasing PNG onto PDF writes a valid one-page PDF beside the original")
+        suite.expect(document?.page(at: 1)?.getBoxRect(.mediaBox).size == CGSize(width: 8, height: 8),
+                     "The converted PDF contains the full-sized image page")
+        let pdfBytes = pdf.flatMap { try? Data(contentsOf: $0) }
+        let secondPDF = try? FileDragConversionEngine.convert(input, to: .pdf, batch: FileDragBatch())
+        suite.expect(secondPDF?.lastPathComponent == "Original-converted 2.pdf"
+                     && pdf.flatMap { try? Data(contentsOf: $0) } == pdfBytes,
+                     "Repeated PNG to PDF drops preserve the previous PDF")
+        suite.expect(drop.takeDrop() == nil,
+                     "Duplicate destination callbacks cannot convert the same drop twice")
+        var cancelledDrop = FileDragDropSession(inputs: [input], formats: [.pdf])
+        cancelledDrop.select(.pdf)
+        cancelledDrop.releaseMouse()
+        suite.expect(!cancelledDrop.prepare(formatAtDrop: nil) && cancelledDrop.takeDrop() == nil,
+                     "Releasing in the hub or outside a format does not convert a stale selection")
+        var preparedDrop = FileDragDropSession(inputs: [input], formats: [.jpeg, .pdf])
+        preparedDrop.select(.jpeg)
+        suite.expect(preparedDrop.prepare(formatAtDrop: .pdf),
+                     "Drop preparation uses the final pointer position")
+        preparedDrop.releaseMouse()
+        preparedDrop.select(.jpeg)
+        suite.expect(preparedDrop.takeDrop()?.format == .pdf,
+                     "Mouse-up between prepare and perform preserves the committed format")
         let first = try? FileDragConversionEngine.convert(input, to: .jpeg, batch: FileDragBatch())
         suite.expect(first?.lastPathComponent == "Original-converted.jpg"
                      && first.flatMap { CGImageSourceCreateWithURL($0 as CFURL, nil) } != nil,

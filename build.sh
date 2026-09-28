@@ -252,6 +252,7 @@ if (( TEST )); then
     TEST_SOURCES=(
         Sources/Vorssaint/Services/Media/MediaSupport.swift
         Sources/Vorssaint/Services/Media/FileDragConversionEngine.swift
+        Sources/Vorssaint/Services/Media/FileDragDropSession.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
         Sources/Vorssaint/Core/QuitProtectionStrings.swift
         Sources/Vorssaint/Core/Defaults.swift

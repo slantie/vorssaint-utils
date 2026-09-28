@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Vorssaint
+
+import Foundation
+
+/// AppKit delivers the destination callbacks separately from the passive
+/// mouse monitor. Releasing the mouse must retain the highlighted format until
+/// prepare/perform have captured the drop, regardless of callback order.
+struct FileDragDropSession {
+    struct Drop {
+        let inputs: [URL]
+        let format: FileDragFormat
+    }
+
+    let inputs: [URL]
+    let formats: [FileDragFormat]
+    private(set) var selected: FileDragFormat?
+    private(set) var mouseReleased = false
+    private var prepared: Drop?
+    private var consumed = false
+
+    mutating func select(_ format: FileDragFormat?) {
+        guard !mouseReleased, prepared == nil, !consumed else { return }
+        selected = format.flatMap { formats.contains($0) ? $0 : nil }
+    }
+
+    mutating func releaseMouse() {
+        mouseReleased = true
+    }
+
+    mutating func prepare(formatAtDrop: FileDragFormat?) -> Bool {
+        guard !consumed, !inputs.isEmpty,
+              let format = formatAtDrop, formats.contains(format) else {
+            prepared = nil
+            return false
+        }
+        selected = format
+        prepared = Drop(inputs: inputs, format: format)
+        return true
+    }
+
+    mutating func takeDrop() -> Drop? {
+        guard !consumed, let drop = prepared else { return nil }
+        consumed = true
+        prepared = nil
+        return drop
+    }
+}
