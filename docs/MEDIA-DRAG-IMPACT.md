@@ -10,6 +10,13 @@ release build and does not establish the final size of that full feature.
 
 ## Native PDF tools increment
 
+The local review fixes and reference-style floating panels now measure
+**110.47 MB** of app files and a comparable **39.42 MB** ZIP. This is
+**0.74 MB / 0.17 MB** above the earlier compatible-engine build, or
+**35.18 MB / 15.33 MB** above the original baseline. No additional third-party
+dependency was introduced; PDF QR scanning reuses the existing Vision decoder.
+These changes are local and await the user's explicit approval to push.
+
 The optimized app with PDF conversion and the split/merge/organize/compress/
 metadata workspace measures **110.15 MB**, with a comparable **39.36 MB** ZIP.
 Relative to the earlier compatible-engine build below, this adds **0.42 MB**
@@ -20,8 +27,10 @@ increment is 15.27 MB. These are still intermediate-catalog measurements.
 
 See [raw PDF size evidence](benchmarks/media-pdf-impact-2026-09-28.json) and
 [PDF validation results](benchmarks/media-pdf-validation-2026-09-28.txt).
-The 242-check media suite and debug/optimized selftests pass. Live PDF window
-and Finder gesture verification is pending because the Mac was locked.
+The latest 272-check media suite, 246-check repository suite and debug/optimized
+selftests pass. Computer Use verified the floating organizer and saved output
+after removing, rotating and reordering pages before appending another PDF.
+The current Finder modifier-drag flow still needs manual verification.
 No new PDF runtime or idle performance claim is made from build or size checks.
 
 ## Compatible bundled-runtime update before PDF tools

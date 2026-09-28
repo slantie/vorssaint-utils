@@ -14,6 +14,7 @@ final class FileDragConversionService: ObservableObject {
     @Published private(set) var selected: FileDragAction?
     @Published private(set) var status: String?
     @Published private(set) var inputCount = 0
+    @Published private(set) var inputBytes: Int64 = 0
 
     private var monitor: Any?
     private var panel: NSPanel?
@@ -96,6 +97,7 @@ final class FileDragConversionService: ObservableObject {
         guard kinds.count == urls.count, let kind = kinds.first,
               kinds.allSatisfy({ $0 == kind }) else { return }
         inputCount = urls.count
+        inputBytes = urls.reduce(0) { $0 + Int64((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
         var formats: [FileDragFormat]
         switch kind {
         case .image:
@@ -110,7 +112,7 @@ final class FileDragConversionService: ObservableObject {
             formats = MediaEngineBundle.bundled == nil ? [.m4a, .wav, .aiff, .flac] : [.mp3, .m4a, .wav, .flac, .ogg, .opus, .aiff, .wma]
         case .document: formats = [.docx, .jpeg, .png, .txt]
         }
-        actions = tools && kind == .document ? PDFTool.allCases.map { .pdfTool($0) }
+        actions = tools && kind == .document ? PDFTool.wheelTools(inputCount: urls.count).map { .pdfTool($0) }
             : (tools ? [] : formats.map { .convert($0) })
         guard !actions.isEmpty else { dismiss(); return }
         toolsMode = tools
@@ -204,11 +206,11 @@ final class FileDragConversionService: ObservableObject {
         let center = CGPoint(x: window.frame.width / 2, y: window.frame.height / 2)
         let dx = location.x - center.x
         let dy = location.y - center.y
-        guard hypot(dx, dy) > 36, !actions.isEmpty else {
+        guard hypot(dx, dy) > 58, !actions.isEmpty else {
             return nil
         }
         guard let index = RadialMenuGeometry.highlightedIndex(dx: dx, dyUp: dy,
-                                                              deadZoneRadius: 36,
+                                                              deadZoneRadius: 58,
                                                               itemCount: actions.count) else {
             return nil
         }
@@ -310,47 +312,42 @@ private struct FileDragConversionWheel: View {
 
     var body: some View {
         ZStack {
-            disc
-            if let selected = service.selected,
-               let index = service.actions.firstIndex(of: selected) {
-                RadialWedgeShape(centerAngle: 2 * .pi * Double(index) / Double(service.actions.count),
-                                 sliceAngle: 2 * .pi / Double(service.actions.count),
-                                 innerRadius: 39, outerRadius: 146)
-                    .fill(RadialGradient(colors: [.accentColor.opacity(0.05), .accentColor.opacity(0.3)],
-                                         center: .center, startRadius: 39, endRadius: 150))
-                    .frame(width: 300, height: 300)
-                    .animation(.easeOut(duration: 0.1), value: index)
+            if !hasPDFTools { disc }
+            ForEach(Array(service.actions.enumerated()), id: \.element.id) { index, action in
+                let position = RadialMenuGeometry.unitPosition(index: index, itemCount: service.actions.count)
+                let highlighted = service.selected == action
+                FileToolWedge(centerAngle: 2 * .pi * Double(index) / Double(service.actions.count),
+                              sliceAngle: 2 * .pi / Double(service.actions.count), innerRadius: 60, outerRadius: 147)
+                    .fill(LinearGradient(colors: highlighted ? [FileToolAppearance.accent, Color(red: 0.85, green: 0.20, blue: 0)]
+                        : [Color(white: 0.20), Color(white: 0.14)], startPoint: .top, endPoint: .bottom))
+                    .overlay(FileToolWedge(centerAngle: 2 * .pi * Double(index) / Double(service.actions.count),
+                                           sliceAngle: 2 * .pi / Double(service.actions.count), innerRadius: 60, outerRadius: 147)
+                        .stroke(PanelSurface.border(for: .dark), lineWidth: 1))
+                    .frame(width: 308, height: 308)
+                VStack(spacing: 5) {
+                    if case .pdfTool(let tool) = action { Image(systemName: tool.icon).font(.system(size: 17, weight: .medium)) }
+                    Text(action.title(l10n.language).uppercased()).font(.system(size: 10, weight: .bold)).tracking(0.6)
+                        .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.7)
+                }
+                .foregroundStyle(.white).frame(width: 88, height: 54)
+                .offset(x: position.dx * 106, y: -position.dyUp * 106)
             }
-            ForEach(Array(service.actions.enumerated()), id: \.element.id) { index, format in
-                let position = RadialMenuGeometry.unitPosition(index: index,
-                                                               itemCount: service.actions.count)
-                Text(format.title(l10n.language))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(service.selected == format ? Color.white : Color.primary)
-                    .frame(minWidth: 50, minHeight: 32)
-                    .padding(.horizontal, 5)
-                    .background(service.selected == format
-                                ? AnyShapeStyle(Color.accentColor)
-                                : AnyShapeStyle(PanelSurface.raisedFill(for: colorScheme)),
-                                in: Capsule())
-                    .overlay(Capsule().strokeBorder(PanelSurface.raisedBorder(for: colorScheme),
-                                                    lineWidth: 0.8))
-                    .shadow(color: PanelSurface.raisedShadow(for: colorScheme), radius: 5, y: 2)
-                    .offset(x: position.dx * 116, y: -position.dyUp * 116)
+            VStack(spacing: 2) {
+                if let selected = service.selected {
+                    Text(selected.title(l10n.language).uppercased()).lineLimit(2).minimumScaleFactor(0.7)
+                } else {
+                    Text(String(format: hasPDFTools ? pdfStrings[.pdfFiles] : strings.fileCountFormat, service.inputCount).uppercased())
+                    Text(ByteCountFormatter.string(fromByteCount: service.inputBytes, countStyle: .file)).foregroundStyle(.white.opacity(0.8))
+                }
             }
-            VStack(spacing: 4) {
-                Image(systemName: hasPDFTools ? "doc.richtext" : "arrow.triangle.2.circlepath")
-                    .font(.system(size: 17, weight: .semibold))
-                Text(service.selected?.title(l10n.language) ?? (hasPDFTools ? pdfStrings[.tools] : strings.convert))
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                Text(String(format: strings.fileCountFormat, service.inputCount))
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(width: 82, height: 82)
-            .background(PanelSurface.controlFill(for: colorScheme), in: Circle())
+            .font(.system(size: 10, weight: .bold)).tracking(0.5).multilineTextAlignment(.center)
+            .foregroundStyle(.white).frame(width: 96, height: 44)
+            .background(Color(white: 0.16).opacity(0.93), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+            Circle().stroke(Color.white.opacity(0.15), lineWidth: 1).frame(width: 312, height: 312)
         }
         .frame(width: 332, height: 332)
+        .preferredColorScheme(.dark)
         .accessibilityLabel(hasPDFTools ? pdfStrings[.dragHint] : strings.dropHint)
     }
 
@@ -386,5 +383,36 @@ private struct DiscRim: ViewModifier {
             .overlay(Circle().strokeBorder(PanelSurface.border(for: colorScheme), lineWidth: 0.8))
             .frame(width: 300, height: 300)
             .shadow(color: .black.opacity(colorScheme == .light ? 0.22 : 0.55), radius: 24, y: 8)
+    }
+}
+
+/// Rounded ring segments share the hit-test angles with RadialMenuGeometry.
+private struct FileToolWedge: Shape {
+    let centerAngle: Double
+    let sliceAngle: Double
+    let innerRadius: CGFloat
+    let outerRadius: CGFloat
+    func path(in rect: CGRect) -> Path {
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let start = centerAngle - sliceAngle / 2 - .pi / 2 + 0.014
+        let end = centerAngle + sliceAngle / 2 - .pi / 2 - 0.014
+        let corner: CGFloat = 10
+        let outerBend = Double(corner / outerRadius)
+        let innerBend = Double(corner / innerRadius)
+        func point(_ radius: CGFloat, _ angle: Double) -> CGPoint {
+            CGPoint(x: center.x + radius * CGFloat(cos(angle)), y: center.y + radius * CGFloat(sin(angle)))
+        }
+        var path = Path()
+        path.move(to: point(outerRadius, start + outerBend))
+        path.addArc(center: center, radius: outerRadius, startAngle: .radians(start + outerBend), endAngle: .radians(end - outerBend), clockwise: false)
+        path.addQuadCurve(to: point(outerRadius - corner, end), control: point(outerRadius, end))
+        path.addLine(to: point(innerRadius + corner, end))
+        path.addQuadCurve(to: point(innerRadius, end - innerBend), control: point(innerRadius, end))
+        path.addArc(center: center, radius: innerRadius, startAngle: .radians(end - innerBend), endAngle: .radians(start + innerBend), clockwise: true)
+        path.addQuadCurve(to: point(innerRadius + corner, start), control: point(innerRadius, start))
+        path.addLine(to: point(outerRadius - corner, start))
+        path.addQuadCurve(to: point(outerRadius, start + outerBend), control: point(outerRadius, start))
+        path.closeSubpath()
+        return path
     }
 }

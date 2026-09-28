@@ -6,8 +6,21 @@ import ImageIO
 import PDFKit
 
 enum PDFTool: String, CaseIterable, Identifiable {
-    case split, merge, organize, compress, metadata
+    case split, merge, organize, compress, metadata, readQR
     var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .compress: return "arrow.down.right.and.arrow.up.left"
+        case .split: return "rectangle.split.2x1"
+        case .merge: return "doc.on.doc"
+        case .organize: return "square.grid.2x2"
+        case .metadata: return "tag"
+        case .readQR: return "qrcode.viewfinder"
+        }
+    }
+    static func wheelTools(inputCount: Int) -> [Self] {
+        inputCount > 1 ? [.compress, .split, .merge, .readQR] : [.compress, .metadata, .split, .organize, .readQR]
+    }
 }
 
 enum FileDragAction: Equatable, Identifiable {
@@ -40,6 +53,7 @@ struct PDFPageEdit: Identifiable, Equatable {
 
 struct PDFEditPlan {
     var pages: [PDFPageEdit]
+    var normalizeWidths = false
 
     mutating func move(_ id: UUID, to destination: Int) {
         guard let index = pages.firstIndex(where: { $0.id == id }),
@@ -106,6 +120,7 @@ enum PDFTools {
     static func save(_ plan: PDFEditPlan, tool: PDFTool, metadata: PDFMetadata = PDFMetadata(),
                      batch: FileDragBatch) throws -> URL {
         guard !batch.isCancelled else { throw CancellationError() }
+        guard tool != .readQR else { throw CocoaError(.fileWriteUnsupportedScheme) }
         guard !plan.pages.isEmpty, plan.pages.count <= maxPages else { throw CocoaError(.fileReadCorruptFile) }
         let input = plan.pages[0].source
         let output = MediaSupport.uniqueOutputURL(for: input, suffix: "-" + tool.rawValue,
@@ -115,14 +130,28 @@ enum PDFTools {
         if tool == .split { try FileManager.default.createDirectory(at: staged, withIntermediateDirectories: false) }
         var sources: [URL: PDFDocument] = [:]
         let combined = PDFDocument()
+        var targetWidth: CGFloat?
+        if plan.normalizeWidths {
+            for edit in plan.pages {
+                guard !batch.isCancelled else { throw CancellationError() }
+                if sources[edit.source] == nil { sources[edit.source] = try document(edit.source) }
+                guard let page = sources[edit.source]?.page(at: edit.index) else { throw CocoaError(.fileReadCorruptFile) }
+                let bounds = page.bounds(for: .mediaBox)
+                let rotation = page.rotation + edit.quarterTurns * 90
+                let width = abs(rotation) % 180 == 0 ? bounds.width : bounds.height
+                guard width.isFinite, width > 0 else { throw CocoaError(.fileReadCorruptFile) }
+                targetWidth = min(targetWidth ?? width, width)
+            }
+        }
         for (offset, edit) in plan.pages.enumerated() {
             try autoreleasepool {
                 guard !batch.isCancelled else { throw CancellationError() }
                 if sources[edit.source] == nil { sources[edit.source] = try document(edit.source) }
                 guard let source = sources[edit.source], source.allowsDocumentAssembly,
-                      let original = source.page(at: edit.index), let page = original.copy() as? PDFPage,
+                      let original = source.page(at: edit.index), var page = original.copy() as? PDFPage,
                       (0...3).contains(edit.quarterTurns) else { throw CocoaError(.fileReadNoPermission) }
                 page.rotation = (page.rotation + edit.quarterTurns * 90) % 360
+                if let targetWidth { page = try normalizedPage(page, width: targetWidth) }
                 if tool == .split {
                     let single = PDFDocument(); single.insert(page, at: 0)
                     guard single.write(to: staged.appendingPathComponent(String(format: "Page %04d.pdf", locale: Locale(identifier: "en_US_POSIX"), offset + 1))) else {
@@ -143,6 +172,31 @@ enum PDFTools {
         guard !batch.isCancelled else { throw CancellationError() }
         try MediaSupport.installStagedOutput(staged, at: output, replacingExisting: false)
         return output
+    }
+
+    private static func normalizedPage(_ page: PDFPage, width: CGFloat) throws -> PDFPage {
+        let bounds = page.bounds(for: .mediaBox)
+        let rotated = abs(page.rotation) % 180 != 0
+        let originalWidth = rotated ? bounds.height : bounds.width
+        let originalHeight = rotated ? bounds.width : bounds.height
+        var box = CGRect(x: 0, y: 0, width: width, height: originalHeight * width / originalWidth)
+        let data = NSMutableData()
+        guard box.height.isFinite, box.height > 0, let reference = page.pageRef,
+              let consumer = CGDataConsumer(data: data), let context = CGContext(consumer: consumer, mediaBox: &box, nil) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        context.beginPDFPage(nil)
+        context.concatenate(reference.getDrawingTransform(.mediaBox, rect: box,
+                            rotate: Int32(page.rotation) - reference.rotationAngle, preserveAspectRatio: true))
+        context.drawPDFPage(reference)
+        // Normalization flattens annotation appearances into the transformed
+        // vector page; ordinary organization retains editable annotations.
+        for annotation in page.annotations where annotation.shouldDisplay { annotation.draw(with: .mediaBox, in: context) }
+        context.endPDFPage(); context.closePDF()
+        guard let normalized = PDFDocument(data: data as Data)?.page(at: 0)?.copy() as? PDFPage else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        return normalized
     }
 
     static func convert(_ input: URL, to format: FileDragFormat, batch: FileDragBatch) throws -> URL {
@@ -177,7 +231,38 @@ enum PDFTools {
         return destination
     }
 
+    static func readQR(_ inputs: [URL], batch: FileDragBatch) throws -> [String] {
+        var results: [String] = []
+        var pageCount = 0
+        for input in inputs {
+            let source = try document(input)
+            guard source.allowsCopying else { throw CocoaError(.fileReadNoPermission) }
+            pageCount += source.pageCount
+            guard pageCount <= maxPages else { throw CocoaError(.fileReadTooLarge) }
+            for index in 0..<source.pageCount {
+                try autoreleasepool {
+                    guard !batch.isCancelled else { throw CancellationError() }
+                    guard let page = source.page(at: index) else { throw CocoaError(.fileReadCorruptFile) }
+                    let codes = BarcodeDetector.decode(try renderImage(page))
+                    for code in codes where !results.contains(code.payload) { results.append(code.payload) }
+                }
+            }
+        }
+        guard !batch.isCancelled else { throw CancellationError() }
+        return results
+    }
+
     static func writeImage(_ page: PDFPage, to url: URL, format: FileDragFormat) throws {
+        let image = try renderImage(page)
+        guard let writer = CGImageDestinationCreateWithURL(url as CFURL, (format.typeIdentifier ?? "public.png") as CFString, 1, nil) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        CGImageDestinationAddImage(writer, image, [kCGImageDestinationLossyCompressionQuality: 0.9,
+                                                kCGImagePropertyDPIWidth: 300, kCGImagePropertyDPIHeight: 300] as CFDictionary)
+        guard CGImageDestinationFinalize(writer) else { throw CocoaError(.fileWriteUnknown) }
+    }
+
+    private static func renderImage(_ page: PDFPage) throws -> CGImage {
         let bounds = page.bounds(for: .mediaBox)
         let swapped = abs(page.rotation) % 180 != 0
         let size = CGSize(width: (swapped ? bounds.height : bounds.width) * 300 / 72,
@@ -194,13 +279,8 @@ enum PDFTools {
         for annotation in page.annotations where annotation.shouldDisplay {
             annotation.draw(with: .mediaBox, in: context)
         }
-        guard let image = context.makeImage(),
-              let writer = CGImageDestinationCreateWithURL(url as CFURL, (format.typeIdentifier ?? "public.png") as CFString, 1, nil) else {
-            throw CocoaError(.fileWriteUnknown)
-        }
-        CGImageDestinationAddImage(writer, image, [kCGImageDestinationLossyCompressionQuality: 0.9,
-                                                kCGImagePropertyDPIWidth: 300, kCGImagePropertyDPIHeight: 300] as CFDictionary)
-        guard CGImageDestinationFinalize(writer) else { throw CocoaError(.fileWriteUnknown) }
+        guard let image = context.makeImage() else { throw CocoaError(.fileReadCorruptFile) }
+        return image
     }
 
     private static func writeWord(_ source: PDFDocument, staged: URL, batch: FileDragBatch) throws {

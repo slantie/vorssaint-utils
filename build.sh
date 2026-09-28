@@ -258,6 +258,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Media/FileDragDropSession.swift
         Sources/Vorssaint/Services/Media/FileDragBatchSession.swift
         Sources/Vorssaint/Services/Media/PDFTools.swift
+        Sources/Vorssaint/Services/Media/PDFWorkspaceModel.swift
         Sources/Vorssaint/Core/PDFToolStrings.swift
         Sources/Vorssaint/Core/MediaEngineStrings.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
@@ -449,6 +450,7 @@ if (( TEST )); then
         Sources/Vorssaint/Core/DiskExclusionStrings.swift
         Sources/Vorssaint/Core/SwitcherAppRulesStrings.swift
         Sources/Vorssaint/Services/QuickTools/QuickToolsSupport.swift
+        Sources/Vorssaint/Services/QuickTools/BarcodeDetector.swift
         Sources/Vorssaint/Services/CommandBar/CommandBarSupport.swift
         Sources/Vorssaint/Services/CommandBar/CommandBarPreferences.swift
         Sources/Vorssaint/Services/CommandBar/CommandBarMath.swift

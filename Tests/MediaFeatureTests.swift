@@ -15,6 +15,7 @@ enum MediaFeatureTests {
     static func run(_ suite: TestSuite) {
         testFileDragConversion(suite)
         PDFToolTests.run(suite)
+        PDFWorkspaceModelTests.run(suite)
         for language in AppLanguage.allCases {
             let strings = MediaEngineStrings.localized(language)
             suite.expect(!strings.conversion.isEmpty && !strings.notices.isEmpty && !strings.sources.isEmpty,

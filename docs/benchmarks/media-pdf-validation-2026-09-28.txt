@@ -6,7 +6,7 @@ Both app selftests: SELFTEST OK.
 The full-suite run before the filename fix had 18 failures of 69740 checks.
 The repository failure was corrected and its suite rerun successfully.
 The remaining 17 notch/switcher failures reproduced on archived pre-PDF b48e9fee sources under the same environment.
-UI/Finder PDF testing remains pending because the Mac is locked.
+At this earlier run, UI/Finder PDF testing was pending because the Mac was locked. See the local review verification below for the later live organizer test.
 
 Pre-PDF baseline result:
 notch: FAILED (29052 checks, 14.93s)
@@ -29,3 +29,23 @@ TESTS FAILED (17 of 69659):
   - Tests/SwitcherScrollTests.swift:166: titles replacing search result/new selection at unchanged index: selected 1-0 at 1.0...181.0 must fit 930.0...1484.0
   - Tests/SwitcherScrollTests.swift:166: titles navigation/wrap first: selected 0-0 at 1.0...181.0 must fit 930.0...1484.0
   - Tests/SwitcherScrollTests.swift:166: titles navigation/second app first: selected 1-0 at 1.0...181.0 must fit 930.0...1484.0
+
+Reference-inspired overlay increment:
+Media suite: 248 checks passed, including real QR payload detection/deduplication, cancelled/empty QR scans, proportional rotated widths and retained selectable text.
+Repository suite: 246 checks passed.
+Developer build installed with non-activating floating panels.
+Debug bundled-app selftest: SELFTEST OK.
+At this earlier run, live overlay/Finder focus, drag and keyboard verification was pending because the Mac was locked.
+Optimized bundled build and selftest: passed / SELFTEST OK.
+
+Owner-review fixes, local pending user approval:
+Comments: discussion_r4124969575 (append preserving edits) and discussion_r4124969760 (current-source metadata).
+Media suite: 272 checks passed.
+Production workspace-model fixtures save and reopen edited-plus-appended PDFs and metadata copies, exercise sorting/reset/removal, reject invalid/duplicate additions, preserve typed fields for an unchanged source, reject stale metadata after reload failure, suppress cancelled/disabled completion, and preserve source bytes.
+Repository suite: 246 checks passed.
+Debug installed build and bundled selftest: passed / SELFTEST OK.
+Final optimized build and bundled selftest: passed / SELFTEST OK.
+Computer Use on the installed Developer app: removed ALPHA, rotated GAMMA once, moved it ahead of BETA, appended Two pages.pdf through Add PDFs. The workspace showed four pages without restoring ALPHA. Saved Three pages-organize 2.pdf beside the original fixtures, preserving the existing Three pages-organize.pdf. Reopened with PDFKit: GAMMA (rotation 90), BETA (0), DELTA (0), EPSILON (0).
+Actual organizer screenshot inspected: independent rounded dark panel, orange action/close controls, numbered white page previews, rotation controls and equal-width option. Closed the main Settings window and returned to the Finder fixture folder for manual testing.
+Finder Shift/Option modifier-drag, multi-screen placement and broader accessibility interactions still need manual verification; native Computer Use drag does not expose held modifiers. The metadata transition was verified through production-model save/reopen fixtures, not through a live multi-document metadata UI session.
+No new changes pushed or published to PR #2258; explicit user approval is required first.

@@ -8,14 +8,14 @@ import UniformTypeIdentifiers
 
 final class PDFToolController: NSObject, NSWindowDelegate {
     static let shared = PDFToolController()
-    private var window: NSWindow?
+    private var window: PDFToolPanel?
     private var model: PDFWorkspaceModel?
 
     func chooseInputs(tool: PDFTool) {
         guard AppFeature.mediaTools.isAvailable else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.pdf]
-        panel.allowsMultipleSelection = tool == .merge || tool == .organize || tool == .split
+        panel.allowsMultipleSelection = tool != .metadata
         panel.canChooseDirectories = false
         panel.begin { [weak self] result in
             guard result == .OK else { return }
@@ -28,23 +28,61 @@ final class PDFToolController: NSObject, NSWindowDelegate {
               !requiresDragEnabled || UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled) else { return }
         if model?.busy == true { window?.makeKeyAndOrderFront(nil); return }
         do {
-            let next = try PDFWorkspaceModel(inputs: inputs, tool: tool, requiresDragEnabled: requiresDragEnabled)
+            let next = try PDFWorkspaceModel(inputs: inputs, tool: tool, requiresDragEnabled: requiresDragEnabled,
+                publishOutputs: { outputs in
+                    NSWorkspace.shared.activateFileViewerSelecting(outputs)
+                    QuickToolHUD.show(icon: "checkmark.circle", message: outputs.map(\.lastPathComponent).joined(separator: ", "))
+                })
             model?.cancel()
             model = next
-            let window = self.window ?? NSWindow(contentRect: NSRect(x: 0, y: 0, width: 830, height: 650),
-                                                  styleMask: [.titled, .closable, .miniaturizable, .resizable],
-                                                  backing: .buffered, defer: false)
-            window.title = PDFToolStrings.localized(L10n.shared.language)[.tools]
+            let window = self.window ?? PDFToolPanel(contentRect: .zero,
+                styleMask: [.borderless, .nonactivatingPanel, .resizable], backing: .buffered, defer: false)
+            window.title = PDFToolStrings.localized(L10n.shared.language).label(tool)
             window.isReleasedWhenClosed = false
             window.delegate = self
-            window.contentMinSize = NSSize(width: 680, height: 520)
-            window.contentView = NSHostingView(rootView: PDFWorkspaceView(model: next, close: { [weak self] in self?.window?.close() }))
-            if self.window == nil { window.center() }
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.hasShadow = true
+            window.hidesOnDeactivate = false
+            window.isMovableByWindowBackground = false
+            window.level = .floating
+            window.animationBehavior = .utilityWindow
+            window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .ignoresCycle]
+            window.contentMinSize = NSSize(width: 480, height: 320)
+            let host = NSHostingController(rootView: PDFWorkspaceView(model: next, close: { [weak self] in self?.window?.close() }))
+            host.sizingOptions = []
+            window.contentViewController = host
+            let preferred: CGSize
+            switch tool {
+            case .merge: preferred = CGSize(width: 600, height: 510)
+            case .organize: preferred = CGSize(width: 760, height: 810)
+            case .split: preferred = CGSize(width: 700, height: 700)
+            case .compress: preferred = CGSize(width: 580, height: 420)
+            case .metadata, .readQR: preferred = CGSize(width: 580, height: 470)
+            }
+            let pointer = NSEvent.mouseLocation
+            let visible = (NSScreen.screens.first { $0.frame.contains(pointer) } ?? NSScreen.main)?.visibleFrame
+                ?? CGRect(x: 0, y: 0, width: 1000, height: 800)
+            let size = CGSize(width: min(preferred.width, visible.width - 24), height: min(preferred.height, visible.height - 24))
+            let origin = CGPoint(x: min(max(pointer.x - size.width / 2, visible.minX + 12), visible.maxX - size.width - 12),
+                                 y: min(max(pointer.y - size.height / 2, visible.minY + 12), visible.maxY - size.height - 12))
+            window.setFrame(CGRect(origin: origin, size: size), display: false)
             self.window = window
-            NSApp.activate()
+            // A non-activating key panel accepts editor input without bringing
+            // Vorssaint's settings window forward or taking Finder's app focus.
             window.makeKeyAndOrderFront(nil)
+            if tool == .readQR { next.scanQR() }
         } catch {
             QuickToolHUD.show(icon: "exclamationmark.triangle", message: error.localizedDescription)
+        }
+    }
+
+    func addInputs(to model: PDFWorkspaceModel) {
+        guard model.isAvailable, !model.busy else { return }
+        let panel = NSOpenPanel(); panel.allowedContentTypes = [.pdf]; panel.allowsMultipleSelection = true
+        panel.begin { [weak model] result in
+            guard let model, result == .OK else { return }
+            do { try model.append(panel.urls) } catch { model.report(error) }
         }
     }
 
@@ -56,91 +94,24 @@ final class PDFToolController: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) { model?.cancel() }
 }
 
-final class PDFWorkspaceModel: ObservableObject {
-    @Published var tool: PDFTool
-    @Published private(set) var inputs: [URL]
-    @Published var plan: PDFEditPlan
-    @Published var metadata: PDFMetadata
-    @Published private(set) var busy = false
-    @Published private(set) var message: String?
-    private var batches = FileDragBatchSession()
-    private let requiresDragEnabled: Bool
-    private var resetInputs: [URL]
-    private var thumbnails: [String: NSImage] = [:]
-    private var documents: [URL: PDFDocument] = [:]
+private final class PDFToolPanel: OverlayPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+    override func cancelOperation(_ sender: Any?) { close() }
+}
 
-    init(inputs: [URL], tool: PDFTool, requiresDragEnabled: Bool) throws {
-        self.inputs = inputs; resetInputs = inputs; self.tool = tool; self.requiresDragEnabled = requiresDragEnabled
-        plan = try PDFTools.plan(inputs)
-        metadata = try PDFTools.metadata(inputs[0])
-    }
-    var isAvailable: Bool {
-        AppFeature.mediaTools.isAvailable && (!requiresDragEnabled || UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled))
-    }
-    var requiresSingleDocument: Bool { tool == .metadata || tool == .compress }
-    var canSave: Bool {
-        isAvailable && !busy && !plan.pages.isEmpty && (!requiresSingleDocument || inputs.count == 1)
-    }
-    func thumbnail(_ page: PDFPageEdit) -> NSImage? {
-        let key = page.source.path + "#" + String(page.index)
-        if let cached = thumbnails[key] { return cached }
-        if documents[page.source] == nil { documents[page.source] = try? PDFTools.document(page.source) }
-        guard let image = documents[page.source]?.page(at: page.index)?.thumbnail(of: NSSize(width: 144, height: 180), for: .mediaBox) else { return nil }
-        if thumbnails.count >= 128 { thumbnails.removeAll() }
-        thumbnails[key] = image
-        return image
-    }
-    func reset() {
-        guard isAvailable, !busy else { return }
-        inputs = resetInputs
-        rebuildPlan()
-    }
-    private func rebuildPlan() {
-        do { plan = try PDFTools.plan(inputs); message = nil }
-        catch { message = error.localizedDescription }
-    }
-    func moveDocument(_ index: Int, offset: Int) {
-        guard isAvailable, !busy, inputs.indices.contains(index + offset) else { return }
-        inputs.swapAt(index, index + offset); rebuildPlan()
-    }
-    func removeDocument(_ index: Int) {
-        guard isAvailable, !busy, inputs.indices.contains(index), inputs.count > 1 else { return }
-        inputs.remove(at: index); resetInputs.removeAll { !inputs.contains($0) }; rebuildPlan()
-    }
-    func add() {
-        guard isAvailable, !busy else { return }
-        let panel = NSOpenPanel(); panel.allowedContentTypes = [.pdf]; panel.allowsMultipleSelection = true
-        panel.begin { [weak self] result in
-            guard let self, result == .OK, self.isAvailable, !self.busy else { return }
-            do {
-                let added = self.inputs + panel.urls.filter { !self.inputs.contains($0) }
-                let plan = try PDFTools.plan(added)
-                self.resetInputs += added.filter { !self.resetInputs.contains($0) }; self.inputs = added; self.plan = plan; self.message = nil
-            } catch { self.message = error.localizedDescription }
-        }
-    }
-    func cancel() { batches.cancel(); message = nil }
-    func save() {
-        guard canSave, let batch = batches.begin() else { return }
-        busy = true; message = nil
-        let snapshot = plan, tool = tool, metadata = metadata
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let result = Result { try PDFTools.save(snapshot, tool: tool, metadata: metadata, batch: batch) }
-            DispatchQueue.main.async {
-                guard let self else { return }
-                let completion = self.batches.finish(batch, featureAvailable: AppFeature.mediaTools.isAvailable, enabled: self.isAvailable)
-                guard completion != .obsolete else { return }
-                self.busy = false
-                guard completion == .publish else { self.message = nil; return }
-                switch result {
-                case .success(let output):
-                    self.message = output.lastPathComponent
-                    NSWorkspace.shared.activateFileViewerSelecting([output])
-                    QuickToolHUD.show(icon: "checkmark.circle", message: output.lastPathComponent)
-                case .failure(let error): self.message = error.localizedDescription
-                }
-            }
-        }
+enum FileToolAppearance {
+    static let accent = Color(red: 1, green: 0.28, blue: 0)
+    static let base = Color(white: 0.15)
+    static let card = Color(white: 0.115)
+}
+
+private struct PDFPanelDragHandle: NSViewRepresentable {
+    func makeNSView(context: Context) -> Handle { Handle() }
+    func updateNSView(_ view: Handle, context: Context) {}
+    final class Handle: NSView {
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
     }
 }
 
@@ -148,24 +119,45 @@ private struct PDFWorkspaceView: View {
     @ObservedObject var model: PDFWorkspaceModel
     var close: () -> Void
     @ObservedObject private var l10n = L10n.shared
-    @Environment(\.colorScheme) private var colorScheme
     private var strings: PDFToolStrings { .localized(l10n.language) }
 
     var body: some View {
         VStack(spacing: 0) {
-            Picker(strings[.tools], selection: $model.tool) {
-                ForEach(PDFTool.allCases) { tool in Text(strings.label(tool)).tag(tool) }
-            }
-            .pickerStyle(.segmented).padding(16).disabled(model.busy || !model.isAvailable)
+            ZStack {
+                PDFPanelDragHandle()
+                Text(strings.label(model.tool)).font(.system(size: 22, weight: .semibold)).allowsHitTesting(false)
+                HStack {
+                    Button(action: close) { Image(systemName: "xmark").font(.system(size: 14, weight: .semibold)).frame(width: 32, height: 32) }
+                        .buttonStyle(.plain).background(Color.white.opacity(0.06), in: Circle())
+                        .overlay(Circle().strokeBorder(FileToolAppearance.accent.opacity(0.6), lineWidth: 2))
+                        .accessibilityLabel(strings[.cancel]).keyboardShortcut(.cancelAction)
+                    Spacer()
+                }.padding(.horizontal, 18)
+            }.frame(height: 64)
             Divider()
             HStack {
-                Text(String(format: strings[.pages], model.plan.pages.count)).foregroundStyle(.secondary)
+                Text(model.tool == .merge ? strings[.documentOrder] : String(format: strings[.pages], model.plan.pages.count)).foregroundStyle(.secondary)
                 Spacer()
-                Button(strings[.add]) { model.add() }.disabled(model.requiresSingleDocument)
-                Button(strings[.reset]) { model.reset() }
+                if model.tool != .readQR {
+                    Button(strings[.add]) { PDFToolController.shared.addInputs(to: model) }.disabled(model.requiresSingleDocument)
+                    if model.tool == .merge { Button(strings[.sortName]) { model.sortDocuments() }.controlSize(.small) }
+                    else { Button(strings[.reset]) { model.reset() }.controlSize(.small) }
+                }
             }.padding(12).disabled(model.busy || !model.isAvailable)
-            if model.tool == .merge || (model.requiresSingleDocument && model.inputs.count > 1) {
+            if model.tool == .merge || model.tool == .compress || (model.requiresSingleDocument && model.inputs.count > 1) {
                 documentList
+            } else if model.tool == .readQR {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if model.qrScanned && model.qrResults.isEmpty && model.message == nil { Text(strings[.noQR]).foregroundStyle(.secondary) }
+                        ForEach(model.qrResults, id: \.self) { payload in
+                            HStack {
+                                Text(payload).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                                Button(strings[.copy]) { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(payload, forType: .string) }
+                            }.padding(14).background(FileToolAppearance.card, in: RoundedRectangle(cornerRadius: 12))
+                        }
+                    }.padding(16)
+                }
             } else if model.tool == .metadata {
                 metadataFields
             } else {
@@ -176,6 +168,13 @@ private struct PDFWorkspaceView: View {
                         }
                     }.padding(16)
                 }
+            }
+            if model.tool == .organize {
+                VStack(alignment: .leading, spacing: 6) {
+                    Divider()
+                    Toggle(strings[.sameWidth], isOn: $model.plan.normalizeWidths).toggleStyle(.checkbox)
+                    Text(strings[.sameWidthHint]).font(.caption).foregroundStyle(.secondary)
+                }.padding(.horizontal, 18).padding(.bottom, 14).disabled(model.busy || !model.isAvailable)
             }
             Divider()
             if model.requiresSingleDocument && model.inputs.count > 1 {
@@ -191,12 +190,19 @@ private struct PDFWorkspaceView: View {
                 }
                 Spacer()
                 if model.busy { ProgressView().controlSize(.small) }
-                Button(strings[.cancel]) { close() }.keyboardShortcut(.cancelAction)
-                Button(strings[.save]) { model.save() }
-                    .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction).disabled(!model.canSave)
+                if model.tool == .readQR {
+                    Button(strings[.cancel], action: close).buttonStyle(.borderedProminent).tint(FileToolAppearance.accent)
+                } else {
+                Button(model.tool == .organize ? strings[.saveOrganized] : strings.label(model.tool)) { model.save() }
+                    .buttonStyle(.borderedProminent).tint(FileToolAppearance.accent)
+                    .keyboardShortcut(.defaultAction).disabled(!model.canSave)
+                }
             }.padding(16)
         }
-        .background(PanelSurface.baseFill(for: colorScheme))
+        .background(FileToolAppearance.base)
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(PanelSurface.border(for: .dark), lineWidth: 1))
+        .preferredColorScheme(.dark)
     }
 
     private var documentList: some View {
@@ -211,7 +217,17 @@ private struct PDFWorkspaceView: View {
                         control("chevron.up", label: strings[.moveUp], disabled: index == 0) { model.moveDocument(index, offset: -1) }
                         control("chevron.down", label: strings[.moveDown], disabled: index + 1 == model.inputs.count) { model.moveDocument(index, offset: 1) }
                         control("minus.circle", label: strings[.remove], disabled: model.inputs.count == 1) { model.removeDocument(index) }
-                    }.padding(14).background(PanelSurface.raisedFill(for: colorScheme), in: RoundedRectangle(cornerRadius: 12))
+                        Image(systemName: "line.3.horizontal").foregroundStyle(.secondary).accessibilityHidden(true)
+                    }.padding(14).background(FileToolAppearance.card, in: RoundedRectangle(cornerRadius: 18))
+                    .onDrag { NSItemProvider(object: url.absoluteString as NSString) }
+                    .onDrop(of: [.text], isTargeted: nil) { providers in
+                        guard !model.busy, let provider = providers.first else { return false }
+                        _ = provider.loadObject(ofClass: NSString.self) { object, _ in
+                            guard let text = object as? String, let source = URL(string: text) else { return }
+                            DispatchQueue.main.async { model.moveDocument(source, to: index) }
+                        }
+                        return true
+                    }
                 }
             }.padding(16)
         }.disabled(model.busy || !model.isAvailable)
@@ -229,26 +245,31 @@ private struct PDFWorkspaceView: View {
     }
 
     private func pageCard(_ page: PDFPageEdit, index: Int) -> some View {
-        VStack(spacing: 7) {
-            HStack {
-                Text("\(index + 1)").font(.caption.bold()).monospacedDigit()
-                Spacer()
-                control("rotate.right", label: strings[.rotate]) { model.plan.rotate(page.id) }
-            }
-            Group {
-                if let image = model.thumbnail(page) {
-                    Image(nsImage: image).resizable().scaledToFit().rotationEffect(.degrees(Double(page.quarterTurns * 90)))
-                } else { Image(systemName: "doc.richtext").font(.largeTitle) }
-            }.frame(width: 135, height: 180)
-            Text(page.source.lastPathComponent).font(.caption2).lineLimit(1).foregroundStyle(.secondary)
-            HStack(spacing: 8) {
+        VStack(spacing: 8) {
+            ZStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: 12).fill(.white)
+                Group {
+                    if let image = model.thumbnail(page) {
+                        Image(nsImage: image).resizable().scaledToFit().rotationEffect(.degrees(Double(page.quarterTurns * 90)))
+                    } else { Image(systemName: "doc.richtext").font(.largeTitle).foregroundStyle(.gray) }
+                }.frame(width: 150, height: 225).clipShape(RoundedRectangle(cornerRadius: 12))
+                HStack {
+                    Text("\(index + 1)").font(.caption.bold()).monospacedDigit().foregroundStyle(.white)
+                        .frame(width: 26, height: 26).background(FileToolAppearance.accent, in: Circle())
+                    Spacer()
+                    control("rotate.right", label: strings[.rotate]) { model.plan.rotate(page.id) }
+                        .foregroundStyle(.white).padding(3).background(Color(white: 0.35), in: Circle())
+                }.padding(8)
+            }.frame(width: 150, height: 225)
+            HStack(spacing: 10) {
                 control("chevron.left", label: strings[.moveUp], disabled: index == 0) { model.plan.move(page.id, to: index - 1) }
                 control("chevron.right", label: strings[.moveDown], disabled: index + 1 == model.plan.pages.count) { model.plan.move(page.id, to: index + 1) }
                 control("plus.square.on.square", label: strings[.duplicate], disabled: model.plan.pages.count >= PDFTools.maxPages) { model.plan.duplicate(page.id) }
                 control("trash", label: strings[.remove]) { model.plan.remove(page.id) }
-            }
+            }.foregroundStyle(.secondary)
         }
-        .padding(12).background(PanelSurface.raisedFill(for: colorScheme), in: RoundedRectangle(cornerRadius: 12))
+        .padding(8)
+        .help(page.source.lastPathComponent)
         .disabled(model.busy || !model.isAvailable)
         .onDrag { NSItemProvider(object: page.id.uuidString as NSString) }
         .onDrop(of: [.text], isTargeted: nil) { providers in

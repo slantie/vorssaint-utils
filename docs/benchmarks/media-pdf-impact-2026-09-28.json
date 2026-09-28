@@ -13,6 +13,24 @@
     "zip_bytes": 106901
   },
   "additional_third_party_dependencies": 0,
-  "ui_verification": "pending: desktop locked",
-  "same_measurement_method": "Tools/measure-media-feature.py bundle_size, symlinks excluded, ZIP deflate 6"
+  "ui_verification": "Live organizer UI and exported page edits verified; full Finder modifier-drag verification pending manual test.",
+  "same_measurement_method": "Tools/measure-media-feature.py bundle_size, symlinks excluded, ZIP deflate 6",
+  "reference_overlay_increment": {
+    "bundle": {
+      "bundle_file_bytes": 110444648,
+      "zip_bytes": 39415599
+    },
+    "additional_third_party_dependencies": 0,
+    "qr_engine": "Existing Vision barcode decoder",
+    "visual_verification": "Computer Use screenshot inspected: rounded dark independent panel, orange controls, numbered white page cards."
+  },
+  "local_review_fixes": {
+    "bundle": {
+      "bundle_file_bytes": 110467512,
+      "zip_bytes": 39423347
+    },
+    "additional_third_party_dependencies": 0,
+    "publication": "Local only; awaiting explicit user push approval",
+    "visual_verification": "Computer Use: floating organizer inspected; removed ALPHA, rotated/moved GAMMA, appended Two pages.pdf, saved beside originals and reopened output: GAMMA 90 degrees, BETA, DELTA, EPSILON. Finder modifier-drag remains a manual check."
+  }
 }

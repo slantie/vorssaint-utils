@@ -3,6 +3,7 @@
 
 import AppKit
 import CoreText
+import CoreImage
 import Foundation
 import ImageIO
 import PDFKit
@@ -62,6 +63,14 @@ enum PDFToolTests {
                          "Export retains both existing and newly applied rotations")
             suite.expect(result.page(at: 0)?.annotations.count == 1 && result.page(at: 1)?.annotations.count == 1,
                          "Duplicated and reordered PDF pages retain their annotations")
+            var normalizedPlan = try PDFTools.plan([a])
+            normalizedPlan.normalizeWidths = true
+            let normalized = try PDFTools.document(PDFTools.save(normalizedPlan, tool: .organize, batch: FileDragBatch()))
+            suite.expect((0..<normalized.pageCount).allSatisfy { abs((normalized.page(at: $0)?.bounds(for: .mediaBox).width ?? 0) - 200) < 0.01 },
+                         "Equal-width export proportionally matches the narrowest displayed page")
+            suite.expect(abs((normalized.page(at: 1)?.bounds(for: .mediaBox).height ?? 0) - 200 * 200 / 300) < 0.01
+                         && normalized.page(at: 1)?.string?.contains("BETA") == true,
+                         "Width normalization preserves rotated proportions and selectable text")
             let previous = try Data(contentsOf: organized)
             let again = try PDFTools.save(plan, tool: .organize, batch: FileDragBatch())
             let preserved = try Data(contentsOf: organized)
@@ -117,6 +126,30 @@ enum PDFToolTests {
                          "Clearing standard fields leaves original metadata untouched")
             let batch = FileDragBatch(); batch.cancel()
             suite.expect((try? PDFTools.save(plan, tool: .split, batch: batch)) == nil, "Cancelled PDF work creates no output")
+            suite.expect((try? PDFTools.readQR([a], batch: batch)) == nil, "Cancelled PDF QR scanning publishes no result")
+            let qrPayload = "https://example.org/vorssaint-fixture"
+            let qrFilter = CIFilter(name: "CIQRCodeGenerator", parameters: ["inputMessage": Data(qrPayload.utf8)])!
+            let qrImage = CIContext().createCGImage(qrFilter.outputImage!, from: qrFilter.outputImage!.extent)!
+            let qrData = NSMutableData()
+            var qrBox = CGRect(x: 0, y: 0, width: 256, height: 256)
+            let qrContext = CGContext(consumer: CGDataConsumer(data: qrData)!, mediaBox: &qrBox, nil)!
+            for _ in 0..<2 {
+                qrContext.beginPDFPage(nil)
+                qrContext.setFillColor(CGColor(gray: 1, alpha: 1)); qrContext.fill(qrBox)
+                qrContext.interpolationQuality = .none
+                qrContext.draw(qrImage, in: CGRect(x: 20, y: 20, width: 216, height: 216))
+                qrContext.endPDFPage()
+            }
+            qrContext.closePDF()
+            let qrPDF = directory.appendingPathComponent("QR.pdf")
+            try (qrData as Data).write(to: qrPDF, options: .withoutOverwriting)
+            suite.expect(try PDFTools.readQR([qrPDF], batch: FileDragBatch()) == [qrPayload],
+                         "PDF QR scanning decodes real page images and deduplicates repeated payloads")
+            suite.expect(try PDFTools.readQR([a], batch: FileDragBatch()).isEmpty,
+                         "PDF QR scanning returns an honest empty result for ordinary document text")
+            suite.expect(PDFTool.wheelTools(inputCount: 2) == [.compress, .split, .merge, .readQR]
+                         && PDFTool.wheelTools(inputCount: 1) == [.compress, .metadata, .split, .organize, .readQR],
+                         "PDF wheels offer document-order merge for a batch and page organization for one PDF")
             suite.expect((try? PDFTools.save(PDFEditPlan(pages: []), tool: .organize, batch: FileDragBatch())) == nil,
                          "Deleting every page cannot create an invalid empty PDF")
             let link = directory.appendingPathComponent("Link.pdf")

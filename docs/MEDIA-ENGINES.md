@@ -79,11 +79,40 @@ containing every page at 300 DPI. Word export retains selectable text in reading
 order, with page images when text is absent; it does not reconstruct the original
 layout or perform OCR. Scanned PDFs consequently need OCR before TXT export.
 
-Shift–Option dragging PDFs opens split, merge, page organization, compression
-or standard document metadata tools. The same tools are accessible from the
+Shift–Option dragging PDFs opens split, merge, page organization, compression,
+local QR reading or standard document metadata tools. A multiple-file wheel
+offers compression, split, merge and QR reading; a single-file wheel replaces
+merge with organization and metadata. Compression saves a separate copy of
+each input. QR reading scans pages locally with the existing Vision decoder,
+deduplicates payloads and offers explicit copy controls; it never opens links
+automatically. The same tools are accessible from the
 Media view's PDF tools menu. Merge starts with Finder's selection order;
 organization supports drag reordering, earlier/later controls, rotation,
-duplication and removal. Split saves one PDF per page in a new folder.
+duplication and removal. Optional equal-width export proportionally scales
+vector pages to the narrowest displayed page; selectable text is retained,
+while annotation appearances are flattened in that mode. Split saves one PDF
+per page in a new folder.
+
+Tool editors are independent non-activating floating panels positioned over
+the current Finder screen. They have rounded dark surfaces, their own close
+and drag controls and orange action buttons, following the supplied references.
+Opening a tool from a drag does not activate the main app or raise settings.
+The wheel uses rounded icon segments with orange selection and a file-count/
+size hub. Merge supports list dragging, arrow controls and name sorting;
+the organizer shows numbered white page previews and rotation controls.
+
+The tested production workspace model preserves existing page identities,
+rotations, duplicates and removals when new PDFs are appended. Document
+sorting, dragging and resetting order retain these edits. Additions are
+validated before state changes; duplicate inputs and invalid additions do not
+reset the plan. Removing a document also removes only its page instances.
+Metadata follows the current single source and retains unsaved field edits
+while that source is unchanged. If reloading another source fails, stale fields
+are cleared and saving is blocked. Model fixtures verify the actual saved page
+contents and metadata, and cancellation/availability publication guards.
+The installed app's live organizer was also tested by removing and rotating
+pages before importing another document; the saved copy reopened with all
+edits intact. Finder modifier-drag remains a manual check for this increment.
 Compression optimizes embedded images and may not reduce the size of every
 document. Metadata edits title, author, subject and keywords; it does not claim
 to remove every embedded metadata object. Password-locked or restricted inputs
