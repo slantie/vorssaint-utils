@@ -8,6 +8,22 @@ import Foundation
 @main
 struct MetricsTests {
     static func main() {
+        if CommandLine.arguments.contains("--media-convert-benchmark") {
+            let arguments = CommandLine.arguments
+            guard arguments.count == 4, let format = FileDragFormat(rawValue: arguments[3]) else {
+                fputs("usage: metrics-tests --media-convert-benchmark INPUT FORMAT\n", stderr)
+                exit(2)
+            }
+            do {
+                let output = try FileDragConversionEngine.convert(URL(fileURLWithPath: arguments[2]),
+                                                                  to: format, batch: FileDragBatch())
+                print(output.path)
+                exit(0)
+            } catch {
+                fputs("\(error.localizedDescription)\n", stderr)
+                exit(1)
+            }
+        }
         let suite = TestSuite()
         let groups: [(String, () -> Void)] = [
             ("harness", {

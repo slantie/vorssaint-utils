@@ -1,0 +1,1157 @@
+{
+  "environment": {
+    "macos": "27.2",
+    "chip": "Apple M5",
+    "ram_bytes": 17179869184
+  },
+  "sizes": {
+    "baseline": {
+      "bundle_file_bytes": 75282630,
+      "zip_bytes": 24091916
+    },
+    "native_feature": {
+      "bundle_file_bytes": 75445030,
+      "zip_bytes": 24141105
+    },
+    "engine_packaging_prototype": {
+      "bundle_file_bytes": 129299962,
+      "zip_bytes": 46201701
+    }
+  },
+  "engine_manifest": {
+    "engines": [
+      "ffmpeg",
+      "ffprobe",
+      "magick"
+    ],
+    "packages": [
+      {
+        "name": "aom",
+        "version": "3.15.1",
+        "license": "license \"BSD-2-Clause\"",
+        "source_urls": [
+          "https://aomedia.googlesource.com/aom.git",
+          "https://media.xiph.org/video/derf/y4m/bus_qcif_15fps.y4m"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "dav1d",
+        "version": "1.5.4",
+        "license": "license \"BSD-2-Clause\"",
+        "source_urls": [
+          "https://code.videolan.org/videolan/dav1d/-/archive/1.5.4/dav1d-1.5.4.tar.bz2",
+          "https://code.videolan.org/videolan/dav1d-test-data/raw/1.1.0/8-bit/data/00000000.ivf"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "ffmpeg",
+        "version": "9.0.2",
+        "license": "license \"GPL-3.0-or-later\"",
+        "source_urls": [
+          "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+          "https://ffmpeg.org/download.html"
+        ],
+        "license_files": 5
+      },
+      {
+        "name": "freetype",
+        "version": "2.14.3",
+        "license": "license \"FTL\"",
+        "source_urls": [
+          "https://downloads.sourceforge.net/project/freetype/freetype2/2.14.3/freetype-2.14.3.tar.xz"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "imagemagick",
+        "version": "7.1.2-32",
+        "license": "license \"ImageMagick\"",
+        "source_urls": [
+          "https://github.com/ImageMagick/ImageMagick/releases/download/7.1.2-32/ImageMagick-7.1.2-32.7z"
+        ],
+        "license_files": 3
+      },
+      {
+        "name": "jpeg-turbo",
+        "version": "3.2.0",
+        "license": "license all_of: [",
+        "source_urls": [
+          "https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz"
+        ],
+        "license_files": 2
+      },
+      {
+        "name": "lame",
+        "version": "4.0",
+        "license": "license \"LGPL-2.0-or-later\"",
+        "source_urls": [
+          "https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz"
+        ],
+        "license_files": 2
+      },
+      {
+        "name": "libde265",
+        "version": "1.1.3",
+        "license": "license \"LGPL-3.0-or-later\"",
+        "source_urls": [
+          "https://github.com/strukturag/libde265/releases/download/v1.1.3/libde265-1.1.3.tar.gz"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "libheif",
+        "version": "1.23.5",
+        "license": "license \"LGPL-3.0-or-later\"",
+        "source_urls": [
+          "https://github.com/strukturag/libheif/releases/download/v1.23.5/libheif-1.23.5.tar.gz"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "libpng",
+        "version": "1.6.58",
+        "license": "license \"libpng-2.0\"",
+        "source_urls": [
+          "https://downloads.sourceforge.net/project/libpng/libpng16/1.6.58/libpng-1.6.58.tar.xz",
+          "https://github.com/glennrp/libpng.git",
+          "https://src.fedoraproject.org/rpms/libpng/raw/49e9a06ca115aaa911dd3419ee79c1870d1428fb/f/pngtest.png"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "libtiff",
+        "version": "4.7.2",
+        "license": "license \"libtiff\"",
+        "source_urls": [
+          "https://download.osgeo.org/libtiff/tiff-4.7.2.tar.gz",
+          "https://download.osgeo.org/libtiff/"
+        ],
+        "license_files": 4
+      },
+      {
+        "name": "libtool",
+        "version": "2.6.2",
+        "license": "license \"GPL-2.0-or-later\"",
+        "source_urls": [
+          "https://ftpmirror.gnu.org/gnu/libtool/libtool-2.6.2.tar.xz"
+        ],
+        "license_files": 2
+      },
+      {
+        "name": "libvmaf",
+        "version": "3.2.1",
+        "license": "license \"BSD-2-Clause-Patent\"",
+        "source_urls": [
+          "https://github.com/Netflix/vmaf/archive/refs/tags/v3.2.1.tar.gz"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "libvpx",
+        "version": "1.17.0",
+        "license": "license \"BSD-3-Clause\"",
+        "source_urls": [
+          "https://github.com/webmproject/libvpx/archive/refs/tags/v1.17.0.tar.gz"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "little-cms2",
+        "version": "2.19.1",
+        "license": "license \"MIT\"",
+        "source_urls": [
+          "https://downloads.sourceforge.net/project/lcms/lcms/2.19.1/lcms2-2.19.1.tar.gz",
+          "https://www.littlecms.com/categories/releases/"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "mpg123",
+        "version": "1.33.7",
+        "license": "license \"LGPL-2.1-only\"",
+        "source_urls": [
+          "https://www.mpg123.de/download/mpg123-1.33.7.tar.bz2",
+          "https://www.mpg123.de/download/"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "openssl@3",
+        "version": "3.6.4",
+        "license": "license \"Apache-2.0\"",
+        "source_urls": [
+          "https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz",
+          "https://openssl-library.org/source/",
+          "https://cpan.metacpan.org/authors/id/L/LE/LEONT/Test-Harness-3.52.tar.gz",
+          "https://cpan.metacpan.org/authors/id/E/EX/EXODIST/Test-Simple-1.302224.tar.gz",
+          "https://cpan.metacpan.org/authors/id/B/BI/BINGOS/ExtUtils-MakeMaker-7.78.tar.gz"
+        ],
+        "license_files": 15
+      },
+      {
+        "name": "opus",
+        "version": "1.6.1",
+        "license": "license \"BSD-3-Clause\"",
+        "source_urls": [
+          "https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.6.1.tar.gz",
+          "https://ftp.osuosl.org/pub/xiph/releases/opus/",
+          "https://gitlab.xiph.org/xiph/opus.git"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "svt-av1",
+        "version": "4.2.0",
+        "license": "license \"BSD-3-Clause\"",
+        "source_urls": [
+          "https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v4.2.0/SVT-AV1-v4.2.0.tar.bz2",
+          "https://github.com/grusell/svt-av1-homebrew-testdata/raw/main/video_64x64_yuv420p_25frames.yuv"
+        ],
+        "license_files": 2
+      },
+      {
+        "name": "webp",
+        "version": "1.6.0",
+        "license": "license \"BSD-3-Clause\"",
+        "source_urls": [
+          "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz",
+          "https://developers.google.com/speed/webp/docs/compiling"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "x264",
+        "version": "r3222",
+        "license": "license \"GPL-2.0-or-later\"",
+        "source_urls": [
+          "https://code.videolan.org/videolan/x264.git",
+          "https://artifacts.videolan.org/x264/release-macos-arm64/"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "x265",
+        "version": "4.3",
+        "license": "license \"GPL-2.0-or-later\"",
+        "source_urls": [
+          "https://github.com/Multicorewareinc/x265/releases/download/4.3/x265_4.3.tar.gz",
+          "https://raw.githubusercontent.com/fraunhoferhhi/vvenc/master/test/data/RTn23_80x44p15_f15.yuv"
+        ],
+        "license_files": 1
+      },
+      {
+        "name": "xz",
+        "version": "5.8.4",
+        "license": "license all_of: [",
+        "source_urls": [
+          "https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.gz"
+        ],
+        "license_files": 8
+      },
+      {
+        "name": "zstd",
+        "version": "1.5.7_1",
+        "license": "license all_of: [",
+        "source_urls": [
+          "https://github.com/facebook/zstd/archive/refs/tags/v1.5.7.tar.gz"
+        ],
+        "license_files": 2
+      }
+    ],
+    "files": [
+      {
+        "path": "bin/ffmpeg",
+        "bytes": 424032,
+        "minimum_macos": "27.0",
+        "sha256": "a51e0de234b2eee0fb3b9ba6a880a7dbb09ee28739d38217731cb4fc6c0363ff"
+      },
+      {
+        "path": "bin/ffprobe",
+        "bytes": 252016,
+        "minimum_macos": "27.0",
+        "sha256": "fbaa6f01b92cf9f72c5beb05df462be9a5acfcf5adbbb6b9be9c285fe45cbfb4"
+      },
+      {
+        "path": "bin/magick",
+        "bytes": 35264,
+        "minimum_macos": "27.0",
+        "sha256": "36bbdd1ec45b8a3db29b7bdd20960930f5739a1ae0e75fd64a86a1e9703afb1c"
+      },
+      {
+        "path": "coders/bmp.so",
+        "bytes": 71600,
+        "minimum_macos": "27.0",
+        "sha256": "f60a4378ccb3f54c8a5bcae1bf0747caff73a734699831d42c77d3c6702d3c7b"
+      },
+      {
+        "path": "coders/gif.so",
+        "bytes": 55136,
+        "minimum_macos": "27.0",
+        "sha256": "8ee60ae6167178cf5a475f3b95c25ccec4b467c7dc950dfac463a6ead45be142"
+      },
+      {
+        "path": "coders/heic.so",
+        "bytes": 62880,
+        "minimum_macos": "27.0",
+        "sha256": "7d8dfce92578cfa09116583d0ec5371cabf3148c177ba9a383d9a2339be52b20"
+      },
+      {
+        "path": "coders/jpeg.so",
+        "bytes": 75808,
+        "minimum_macos": "27.0",
+        "sha256": "7ae59e429810689f99e2e7f69acac246b712dbd31e9c39199a8322df3a06fa0d"
+      },
+      {
+        "path": "coders/miff.so",
+        "bytes": 74192,
+        "minimum_macos": "27.0",
+        "sha256": "58072470acbed0cc148db18b45c467883013ea222cf7152fde177c1d8e64a4e4"
+      },
+      {
+        "path": "coders/png.so",
+        "bytes": 181248,
+        "minimum_macos": "27.0",
+        "sha256": "3cef65c971079267ae9d7598accfb5c87f413e2334ff276b41910eca3fefb354"
+      },
+      {
+        "path": "coders/svg.so",
+        "bytes": 105920,
+        "minimum_macos": "27.0",
+        "sha256": "5fb8c665433bd8c8a45a5c86885b457c38aaeb5001751809d3c4bdca79ecd9cd"
+      },
+      {
+        "path": "coders/tiff.so",
+        "bytes": 135616,
+        "minimum_macos": "27.0",
+        "sha256": "8306ad207a088d1d221a8433cbd342508484ed98f7e9bd704e67752f7caa4ca3"
+      },
+      {
+        "path": "coders/webp.so",
+        "bytes": 56176,
+        "minimum_macos": "27.0",
+        "sha256": "85ac038322553fd5dd0d17a172c660fd8083cd9a89364dbe89ea1f397843c5c5"
+      },
+      {
+        "path": "coders/xc.so",
+        "bytes": 34576,
+        "minimum_macos": "27.0",
+        "sha256": "f1f10999306f2dd0e0731988f4083bdbe94ac6471cfb601ab15dcff58e66b656"
+      },
+      {
+        "path": "lib/libavdevice.63.1.102.dylib",
+        "bytes": 130864,
+        "minimum_macos": "27.0",
+        "sha256": "49abd7b008675fd208f8baf06a5012c768a85dd958c7592f2041719f0752064f"
+      },
+      {
+        "path": "lib/libavfilter.12.1.102.dylib",
+        "bytes": 2930576,
+        "minimum_macos": "27.0",
+        "sha256": "e09f034a493a2ade82ff23b9d09802ac77b073e1cf4bf4265dea4828c7b900a8"
+      },
+      {
+        "path": "lib/libavformat.63.1.102.dylib",
+        "bytes": 2359584,
+        "minimum_macos": "27.0",
+        "sha256": "0b368f9ded8121814dd067a1b1baddf05cdf0fbd8d2b2cc5b1c6f63d0a4b3d5b"
+      },
+      {
+        "path": "lib/libavcodec.63.1.102.dylib",
+        "bytes": 9692176,
+        "minimum_macos": "27.0",
+        "sha256": "f2c28dea6048b4e6658c0bff3683deb3021b3cc267c6b7098125f8b293abea29"
+      },
+      {
+        "path": "lib/libswresample.7.1.102.dylib",
+        "bytes": 86592,
+        "minimum_macos": "27.0",
+        "sha256": "67c3c8739a7d876408adb9e9bffc5baa3c8eac31bc5d6a79c6f3b968f157e269"
+      },
+      {
+        "path": "lib/libswscale.10.1.102.dylib",
+        "bytes": 684752,
+        "minimum_macos": "27.0",
+        "sha256": "bfb5a611db99d28741cbf25988b8ec67cf5f6cd6f0ae9be558242889d8de9687"
+      },
+      {
+        "path": "lib/libavutil.61.1.102.dylib",
+        "bytes": 639840,
+        "minimum_macos": "27.0",
+        "sha256": "e62939779af484eb1fc2f61efbe7fb54ca5acca93974a7a4358009b2fe09c0f7"
+      },
+      {
+        "path": "lib/libvmaf.3.dylib",
+        "bytes": 896560,
+        "minimum_macos": "27.0",
+        "sha256": "565315c4420d53d525b9d05f9793221eb122d4dc8b57935e7f57709d2573f4a3"
+      },
+      {
+        "path": "lib/libssl.3.dylib",
+        "bytes": 883760,
+        "minimum_macos": "26.0",
+        "sha256": "0634db9120e596bad0cc04e92520038f046e760afd253b0020aa5cf6a1cc6ab8"
+      },
+      {
+        "path": "lib/libcrypto.3.dylib",
+        "bytes": 4844432,
+        "minimum_macos": "26.0",
+        "sha256": "f01555434b6cb309c4545f2416f204b814ea0d46b98ff9101f3c25855e35336b"
+      },
+      {
+        "path": "lib/libvpx.12.dylib",
+        "bytes": 1737744,
+        "minimum_macos": "26.0",
+        "sha256": "3d1852e315016b57d9e57d0e15bad5952b2bff4a3360143a481d57b68a53a377"
+      },
+      {
+        "path": "lib/liblzma.5.dylib",
+        "bytes": 166576,
+        "minimum_macos": "27.0",
+        "sha256": "4d0199f8f3b13f0c81fb23781de8a68a286d1db4c34639d5184cb800c5ca5e82"
+      },
+      {
+        "path": "lib/libdav1d.7.dylib",
+        "bytes": 825360,
+        "minimum_macos": "26.0",
+        "sha256": "6dfe089964f9f55341568b7e882ed9d5341b16f619c05444666bbe526c8e1466"
+      },
+      {
+        "path": "lib/libmp3lame.0.dylib",
+        "bytes": 214640,
+        "minimum_macos": "26.0",
+        "sha256": "52824ef565acc792d265e6afb3bb2941130db23b234232eeb47b1cbd6f4b256b"
+      },
+      {
+        "path": "lib/libopus.0.dylib",
+        "bytes": 355760,
+        "minimum_macos": "26.0",
+        "sha256": "25266086c36f91cff589fadf81ed6063a5e0b810711e38a67ece61ea25e1cbb3"
+      },
+      {
+        "path": "lib/libSvtAv1Enc.4.2.0.dylib",
+        "bytes": 3039680,
+        "minimum_macos": "26.0",
+        "sha256": "5dbf622376ba872f914df845cda68c2a062eb35074e706e86b713fcf0c1e3841"
+      },
+      {
+        "path": "lib/libx264.165.dylib",
+        "bytes": 1256288,
+        "minimum_macos": "26.0",
+        "sha256": "1b824b31f32a0ca9b35752c727a76c7ba1fbd94b44f63adb72fac3a320e52766"
+      },
+      {
+        "path": "lib/libx265.217.dylib",
+        "bytes": 7593440,
+        "minimum_macos": "26.0",
+        "sha256": "324bd447b22f7044c56a879966ff04864e938be2a596dca66ebc9253ffeb4223"
+      },
+      {
+        "path": "lib/libMagickCore-7.Q16HDRI.10.dylib",
+        "bytes": 1766432,
+        "minimum_macos": "27.0",
+        "sha256": "d6bdabd3219de2e70c1a66cdf886f14be213b9b457de7edb95493198a997a5bc"
+      },
+      {
+        "path": "lib/libMagickWand-7.Q16HDRI.10.dylib",
+        "bytes": 1089136,
+        "minimum_macos": "27.0",
+        "sha256": "4d546007afb05c326b44369fc502e102f71a25692ba9f0c1c1758679d0572ba5"
+      },
+      {
+        "path": "lib/liblcms2.2.dylib",
+        "bytes": 338320,
+        "minimum_macos": "26.0",
+        "sha256": "886b6b54d7cad28faf3ca75b5c7edb72b25527fc721483a582afc808e82a5e5e"
+      },
+      {
+        "path": "lib/libfreetype.6.dylib",
+        "bytes": 620256,
+        "minimum_macos": "26.0",
+        "sha256": "4d7914cf8d5e2f46ddf6b577655ad7634c12cec9c0cd528937699843d9eb5ed8"
+      },
+      {
+        "path": "lib/libltdl.7.dylib",
+        "bytes": 75280,
+        "minimum_macos": "26.0",
+        "sha256": "cd06d895a3b6fe48e565ebca3d898795fbeec504d2ff18108be623a9cc463709"
+      },
+      {
+        "path": "lib/libheif.1.23.5.dylib",
+        "bytes": 1852912,
+        "minimum_macos": "27.0",
+        "sha256": "844716a393e80b498ebb9c06ad7c81493f883b4dd843a12eb2638be501ea0ad9"
+      },
+      {
+        "path": "lib/libjpeg.8.3.2.dylib",
+        "bytes": 454256,
+        "minimum_macos": "26.0",
+        "sha256": "6919b70d66fa088f52f84b0166c3ef24bea43ba8ba24703d6bd7cd46c0a3b985"
+      },
+      {
+        "path": "lib/libpng16.16.dylib",
+        "bytes": 190272,
+        "minimum_macos": "26.0",
+        "sha256": "93d64ae78005f6aec8a9878037c4b910b900b4b53b3552f8e1be35c62f5b15d8"
+      },
+      {
+        "path": "lib/libtiff.6.dylib",
+        "bytes": 525504,
+        "minimum_macos": "26.0",
+        "sha256": "65b76fd063090828fd7d04634f71c3a72c1f4aaf91b1b24a835f8ebdaef32c06"
+      },
+      {
+        "path": "lib/libwebpmux.3.1.2.dylib",
+        "bytes": 55184,
+        "minimum_macos": "26.0",
+        "sha256": "69d97f09561ff5aa7c16e74d11b82af18d384f4b84ba01276e859d0b2bae3649"
+      },
+      {
+        "path": "lib/libwebpdemux.2.0.17.dylib",
+        "bytes": 35184,
+        "minimum_macos": "26.0",
+        "sha256": "c477765cbc921c13b15bd02e579399e3ccdf249e05b9e3e8f0ad368cf37924d6"
+      },
+      {
+        "path": "lib/libwebp.7.2.0.dylib",
+        "bytes": 334272,
+        "minimum_macos": "26.0",
+        "sha256": "89a0d6f27c3aa1d7fd0f84d6d63427e8f5091c6aba06f6fa63ae923b2ed5ddcd"
+      },
+      {
+        "path": "lib/libmpg123.0.dylib",
+        "bytes": 270336,
+        "minimum_macos": "26.0",
+        "sha256": "b0d4b7eb3e976be98369c15483aa13da677c4908a0f784bba24850147d62cd9d"
+      },
+      {
+        "path": "lib/libde265.0.2.3.dylib",
+        "bytes": 345664,
+        "minimum_macos": "27.0",
+        "sha256": "920a016d715d9ef266e6302a7ad2cb35ddf227c124cff37bca7bafd9e277a0be"
+      },
+      {
+        "path": "lib/libaom.3.15.1.dylib",
+        "bytes": 4306960,
+        "minimum_macos": "27.0",
+        "sha256": "d77910e8ebf2593d89697721ce5eec7f86acd639975f954b43c60fc1a807f9df"
+      },
+      {
+        "path": "lib/libsharpyuv.0.1.2.dylib",
+        "bytes": 51584,
+        "minimum_macos": "26.0",
+        "sha256": "d5af25bf7ec539cef0646a4ebe5f1d3175e28bebdff0707cf2223d4842bc925e"
+      },
+      {
+        "path": "lib/libzstd.1.5.7.dylib",
+        "bytes": 631664,
+        "minimum_macos": "26.0",
+        "sha256": "a61d9ec25a1109bc5030a99a7fcbd79737868111fb82adb32f7de3e5b7fa7a25"
+      }
+    ],
+    "redistribution_status": "Source archives and complete license notices must accompany releases"
+  },
+  "workloads": {
+    "baseline_selftest": {
+      "median_wall_seconds": 0.200366250006482,
+      "median_main_process_peak_rss_bytes": 41566208,
+      "samples": [
+        {
+          "wall_seconds": 0.20131941699946765,
+          "peak_rss_bytes": 41533440,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.19047800000407733,
+          "peak_rss_bytes": 41615360,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.19346416599000804,
+          "peak_rss_bytes": 41549824,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.20383945798675995,
+          "peak_rss_bytes": 41566208,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.200366250006482,
+          "peak_rss_bytes": 41762816,
+          "user_seconds": 0.04,
+          "system_seconds": 0.05
+        }
+      ]
+    },
+    "feature_selftest": {
+      "median_wall_seconds": 0.19475212499673944,
+      "median_main_process_peak_rss_bytes": 41697280,
+      "samples": [
+        {
+          "wall_seconds": 0.19475212499673944,
+          "peak_rss_bytes": 41582592,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.18578533398977015,
+          "peak_rss_bytes": 41582592,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.19102737499633804,
+          "peak_rss_bytes": 41697280,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.26445341599173844,
+          "peak_rss_bytes": 41795584,
+          "user_seconds": 0.04,
+          "system_seconds": 0.06
+        },
+        {
+          "wall_seconds": 0.3133630410011392,
+          "peak_rss_bytes": 41779200,
+          "user_seconds": 0.04,
+          "system_seconds": 0.08
+        }
+      ]
+    },
+    "native_24mp_png_to_jpeg": {
+      "median_wall_seconds": 0.2388870830036467,
+      "median_main_process_peak_rss_bytes": 404815872,
+      "samples": [
+        {
+          "wall_seconds": 0.2563466249994235,
+          "peak_rss_bytes": 404799488,
+          "user_seconds": 0.2,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.24061795900342986,
+          "peak_rss_bytes": 404832256,
+          "user_seconds": 0.19,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.2388870830036467,
+          "peak_rss_bytes": 404815872,
+          "user_seconds": 0.19,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.23842775000957772,
+          "peak_rss_bytes": 404815872,
+          "user_seconds": 0.19,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.2386857079982292,
+          "peak_rss_bytes": 404865024,
+          "user_seconds": 0.19,
+          "system_seconds": 0.03
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 338804736,
+        "sampled_children_peak_sum_rss_bytes": 0,
+        "samples": 4,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      }
+    },
+    "magick_24mp_png_to_jpeg": {
+      "median_wall_seconds": 0.2760180410114117,
+      "median_main_process_peak_rss_bytes": 365232128,
+      "samples": [
+        {
+          "wall_seconds": 0.2779924589995062,
+          "peak_rss_bytes": 365232128,
+          "user_seconds": 0.25,
+          "system_seconds": 0.02
+        },
+        {
+          "wall_seconds": 0.2761810000083642,
+          "peak_rss_bytes": 365232128,
+          "user_seconds": 0.25,
+          "system_seconds": 0.02
+        },
+        {
+          "wall_seconds": 0.2709627080039354,
+          "peak_rss_bytes": 365215744,
+          "user_seconds": 0.24,
+          "system_seconds": 0.01
+        },
+        {
+          "wall_seconds": 0.2760180410114117,
+          "peak_rss_bytes": 365248512,
+          "user_seconds": 0.25,
+          "system_seconds": 0.01
+        },
+        {
+          "wall_seconds": 0.2754616669990355,
+          "peak_rss_bytes": 365215744,
+          "user_seconds": 0.25,
+          "system_seconds": 0.01
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 324517888,
+        "sampled_children_peak_sum_rss_bytes": 0,
+        "samples": 5,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      }
+    },
+    "native_1080p_video_to_mp4": {
+      "median_wall_seconds": 3.053092625006684,
+      "median_main_process_peak_rss_bytes": 26361856,
+      "samples": [
+        {
+          "wall_seconds": 3.0523392080067424,
+          "peak_rss_bytes": 27426816,
+          "user_seconds": 0.2,
+          "system_seconds": 0.29
+        },
+        {
+          "wall_seconds": 3.0531452919967705,
+          "peak_rss_bytes": 25608192,
+          "user_seconds": 0.2,
+          "system_seconds": 0.29
+        },
+        {
+          "wall_seconds": 3.0532239159947494,
+          "peak_rss_bytes": 25706496,
+          "user_seconds": 0.19,
+          "system_seconds": 0.27
+        },
+        {
+          "wall_seconds": 3.052531249995809,
+          "peak_rss_bytes": 28262400,
+          "user_seconds": 0.2,
+          "system_seconds": 0.28
+        },
+        {
+          "wall_seconds": 3.053092625006684,
+          "peak_rss_bytes": 26361856,
+          "user_seconds": 0.19,
+          "system_seconds": 0.28
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 44859392,
+        "sampled_children_peak_sum_rss_bytes": 28655616,
+        "samples": 43,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      }
+    },
+    "ffmpeg_1080p_video_to_mp4": {
+      "median_wall_seconds": 1.2508646659989608,
+      "median_main_process_peak_rss_bytes": 216924160,
+      "samples": [
+        {
+          "wall_seconds": 1.2524552500108257,
+          "peak_rss_bytes": 216760320,
+          "user_seconds": 2.14,
+          "system_seconds": 0.11
+        },
+        {
+          "wall_seconds": 1.2493518749979557,
+          "peak_rss_bytes": 217497600,
+          "user_seconds": 2.13,
+          "system_seconds": 0.11
+        },
+        {
+          "wall_seconds": 1.2538344580098055,
+          "peak_rss_bytes": 216547328,
+          "user_seconds": 2.14,
+          "system_seconds": 0.11
+        },
+        {
+          "wall_seconds": 1.2490329169959296,
+          "peak_rss_bytes": 216924160,
+          "user_seconds": 2.15,
+          "system_seconds": 0.11
+        },
+        {
+          "wall_seconds": 1.2508646659989608,
+          "peak_rss_bytes": 217612288,
+          "user_seconds": 2.13,
+          "system_seconds": 0.11
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 216219648,
+        "sampled_children_peak_sum_rss_bytes": 0,
+        "samples": 19,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      }
+    },
+    "native_10s_wav_to_m4a": {
+      "median_wall_seconds": 0.04690833299537189,
+      "median_main_process_peak_rss_bytes": 16564224,
+      "samples": [
+        {
+          "wall_seconds": 0.0558947499957867,
+          "peak_rss_bytes": 16564224,
+          "user_seconds": 0.03,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.0470687080087373,
+          "peak_rss_bytes": 16547840,
+          "user_seconds": 0.03,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.046785250000539236,
+          "peak_rss_bytes": 16515072,
+          "user_seconds": 0.03,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.046839999995427206,
+          "peak_rss_bytes": 16564224,
+          "user_seconds": 0.03,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.04690833299537189,
+          "peak_rss_bytes": 16564224,
+          "user_seconds": 0.03,
+          "system_seconds": 0.0
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 311296,
+        "sampled_children_peak_sum_rss_bytes": 0,
+        "samples": 1,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      }
+    },
+    "ffmpeg_10s_wav_to_m4a": {
+      "median_wall_seconds": 0.07534958400356118,
+      "median_main_process_peak_rss_bytes": 16891904,
+      "samples": [
+        {
+          "wall_seconds": 0.07752237499516923,
+          "peak_rss_bytes": 16809984,
+          "user_seconds": 0.07,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.0749663330061594,
+          "peak_rss_bytes": 16859136,
+          "user_seconds": 0.06,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.07535029199789278,
+          "peak_rss_bytes": 16924672,
+          "user_seconds": 0.07,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.07532099999662023,
+          "peak_rss_bytes": 16908288,
+          "user_seconds": 0.07,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.07534958400356118,
+          "peak_rss_bytes": 16891904,
+          "user_seconds": 0.07,
+          "system_seconds": 0.0
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 16842752,
+        "sampled_children_peak_sum_rss_bytes": 0,
+        "samples": 2,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      }
+    }
+  },
+  "limitations": [
+    "Synthetic files on one Mac, five sequential warm runs per workload.",
+    "CPU seconds and maximum RSS are /usr/bin/time process accounting, not app idle overhead.",
+    "The test harness uses the actual conversion engine but is not a full app UI session.",
+    "Video encoder settings differ; timings are illustrative costs, not a quality-matched speed ranking.",
+    "Prototype engines have not passed macOS 14 compatibility or release redistribution gates.",
+    "Idle samples were 20-second sessions on a live user Mac; background activity and UI warm-up were not controlled.",
+    "Native media work may be delegated to macOS XPC services outside the sampled process tree.",
+    "The full tool catalog has not been implemented; prototype size includes only FFmpeg, ffprobe, ImageMagick, selected image coders, and their libraries."
+  ],
+  "provenance": {
+    "baseline_commit": "9be00fbc",
+    "native_feature_commit": "6350dbcc",
+    "date": "2026-09-28",
+    "optimization": "-O",
+    "target": "arm64-apple-macosx14.0",
+    "sdk": "MacOSX26.sdk",
+    "zip_compression": "ZIP deflate level 6",
+    "prototype_only": true
+  },
+  "idle_sessions": [
+    {
+      "label": "baseline",
+      "samples": [
+        {
+          "elapsed": 0.0,
+          "cpu_seconds": 3.82,
+          "rss_bytes": 351027200
+        },
+        {
+          "elapsed": 2.0077691249898635,
+          "cpu_seconds": 3.84,
+          "rss_bytes": 304922624
+        },
+        {
+          "elapsed": 4.015571291995002,
+          "cpu_seconds": 3.85,
+          "rss_bytes": 304922624
+        },
+        {
+          "elapsed": 6.023162083001807,
+          "cpu_seconds": 3.86,
+          "rss_bytes": 304922624
+        },
+        {
+          "elapsed": 8.037240291989292,
+          "cpu_seconds": 3.87,
+          "rss_bytes": 304922624
+        },
+        {
+          "elapsed": 10.0464673749957,
+          "cpu_seconds": 3.88,
+          "rss_bytes": 304922624
+        },
+        {
+          "elapsed": 12.056291916989721,
+          "cpu_seconds": 3.9,
+          "rss_bytes": 304922624
+        },
+        {
+          "elapsed": 14.062804874993162,
+          "cpu_seconds": 3.91,
+          "rss_bytes": 304922624
+        },
+        {
+          "elapsed": 16.07025562498893,
+          "cpu_seconds": 3.92,
+          "rss_bytes": 304922624
+        },
+        {
+          "elapsed": 18.08380274999945,
+          "cpu_seconds": 3.93,
+          "rss_bytes": 247005184
+        },
+        {
+          "elapsed": 20.090838999996777,
+          "cpu_seconds": 3.94,
+          "rss_bytes": 247005184
+        }
+      ],
+      "cpu_percent": 0.5972871516217882,
+      "rss_median_bytes": 304922624
+    },
+    {
+      "label": "feature_off",
+      "samples": [
+        {
+          "elapsed": 0.0,
+          "cpu_seconds": 6.71,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 2.014050458004931,
+          "cpu_seconds": 6.73,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 4.024703540999326,
+          "cpu_seconds": 6.74,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 6.03521154099144,
+          "cpu_seconds": 6.76,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 8.049058832999435,
+          "cpu_seconds": 6.77,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 10.061467874998925,
+          "cpu_seconds": 6.78,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 12.075510249997023,
+          "cpu_seconds": 6.79,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 14.0890954159986,
+          "cpu_seconds": 6.81,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 16.10307791599189,
+          "cpu_seconds": 6.82,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 18.11452829100017,
+          "cpu_seconds": 6.84,
+          "rss_bytes": 358105088
+        },
+        {
+          "elapsed": 20.127860166001483,
+          "cpu_seconds": 6.89,
+          "rss_bytes": 358137856
+        }
+      ],
+      "cpu_percent": 0.894282842366138,
+      "rss_median_bytes": 358105088
+    },
+    {
+      "label": "feature_on",
+      "samples": [
+        {
+          "elapsed": 0.0,
+          "cpu_seconds": 8.02,
+          "rss_bytes": 287588352
+        },
+        {
+          "elapsed": 2.0099734170071315,
+          "cpu_seconds": 8.08,
+          "rss_bytes": 287621120
+        },
+        {
+          "elapsed": 4.019909667011234,
+          "cpu_seconds": 8.1,
+          "rss_bytes": 287490048
+        },
+        {
+          "elapsed": 6.032201374997385,
+          "cpu_seconds": 8.11,
+          "rss_bytes": 287490048
+        },
+        {
+          "elapsed": 8.044605750008486,
+          "cpu_seconds": 8.12,
+          "rss_bytes": 287490048
+        },
+        {
+          "elapsed": 10.056771208997816,
+          "cpu_seconds": 8.14,
+          "rss_bytes": 287440896
+        },
+        {
+          "elapsed": 12.06978325000091,
+          "cpu_seconds": 8.16,
+          "rss_bytes": 287440896
+        },
+        {
+          "elapsed": 14.078600584005471,
+          "cpu_seconds": 8.17,
+          "rss_bytes": 287440896
+        },
+        {
+          "elapsed": 16.089165875004255,
+          "cpu_seconds": 8.19,
+          "rss_bytes": 287440896
+        },
+        {
+          "elapsed": 18.102857292004046,
+          "cpu_seconds": 8.25,
+          "rss_bytes": 287440896
+        },
+        {
+          "elapsed": 20.116428167006234,
+          "cpu_seconds": 8.26,
+          "rss_bytes": 287440896
+        }
+      ],
+      "cpu_percent": 1.1930547411673902,
+      "rss_median_bytes": 287440896
+    },
+    {
+      "label": "feature_off_after_on",
+      "samples": [
+        {
+          "elapsed": 0.0,
+          "cpu_seconds": 9.6,
+          "rss_bytes": 287850496
+        },
+        {
+          "elapsed": 2.0133944999979576,
+          "cpu_seconds": 9.62,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 4.023948750007548,
+          "cpu_seconds": 9.65,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 6.033661124994978,
+          "cpu_seconds": 9.69,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 8.04396095899574,
+          "cpu_seconds": 9.7,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 10.051302125008078,
+          "cpu_seconds": 9.71,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 12.061583792004967,
+          "cpu_seconds": 9.74,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 14.0725192920072,
+          "cpu_seconds": 9.78,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 16.082050541997887,
+          "cpu_seconds": 9.83,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 18.090557917006663,
+          "cpu_seconds": 9.86,
+          "rss_bytes": 262438912
+        },
+        {
+          "elapsed": 20.096773166995263,
+          "cpu_seconds": 9.86,
+          "rss_bytes": 262438912
+        }
+      ],
+      "cpu_percent": 1.2937400339821483,
+      "rss_median_bytes": 262438912
+    }
+  ]
+}
