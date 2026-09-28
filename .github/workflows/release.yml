@@ -119,6 +119,9 @@ jobs:
           SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
         run: ./Tools/ci-setup-signing.sh
 
+      - name: Install engine build prerequisites
+        run: brew install cmake pkgconf
+
       - name: Build
         run: ./build.sh
 
@@ -128,7 +131,7 @@ jobs:
           codesign --verify --deep --strict -R="$REQUIREMENT" build/stage/Vorssaint.app
 
       - name: Selftest
-        run: ./build/Vorssaint --selftest
+        run: build/stage/Vorssaint.app/Contents/MacOS/Vorssaint --selftest
 
       - name: Notarize app
         env:
@@ -226,13 +229,15 @@ jobs:
           BUNDLE="$RUNNER_TEMP/release-bundle"
           mkdir -p "$BUNDLE"
           cp dist/*.dmg "$BUNDLE/"
+          cp .build/media-engines/corresponding-sources.tar.gz \
+            "$BUNDLE/vorssaint-media-sources-${GITHUB_REF_NAME#v}.tar.gz"
           if compgen -G "dist/showcase/*.mp4" > /dev/null; then
             cp dist/showcase/*.mp4 "$BUNDLE/"
           fi
           cp "$NOTES_FILE" "$BUNDLE/release-notes.md"
           (
             cd "$BUNDLE"
-            shasum -a 256 ./*.dmg ./release-notes.md > SHA256SUMS
+            shasum -a 256 ./*.dmg ./*.tar.gz ./release-notes.md > SHA256SUMS
             if compgen -G "*.mp4" > /dev/null; then
               shasum -a 256 ./*.mp4 >> SHA256SUMS
             fi
@@ -293,6 +298,7 @@ jobs:
             exit 1
           fi
           FILES=(release-bundle/*.dmg)
+          FILES+=(release-bundle/*.tar.gz)
           if compgen -G "release-bundle/*.mp4" > /dev/null; then
             FILES+=(release-bundle/*.mp4)
           fi

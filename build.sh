@@ -31,6 +31,7 @@ trap 'exit 1' INT TERM HUP
 DEV=0
 INSTALL=0
 TEST=0
+MEDIA_ENGINES=1
 TEST_ARGS=()
 for arg in "$@"; do
     case "$arg" in
@@ -39,6 +40,7 @@ for arg in "$@"; do
         --test)    TEST=1 ;;
         --test-suite=*) TEST=1; TEST_ARGS+=("--suite=${arg#*=}") ;;
         --list-tests) TEST=1; TEST_ARGS+=(--list) ;;
+        --without-media-engines) MEDIA_ENGINES=0 ;;
     esac
 done
 
@@ -252,7 +254,9 @@ if (( TEST )); then
     TEST_SOURCES=(
         Sources/Vorssaint/Services/Media/MediaSupport.swift
         Sources/Vorssaint/Services/Media/FileDragConversionEngine.swift
+        Sources/Vorssaint/Services/Media/MediaEngineBundle.swift
         Sources/Vorssaint/Services/Media/FileDragDropSession.swift
+        Sources/Vorssaint/Core/MediaEngineStrings.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
         Sources/Vorssaint/Core/QuitProtectionStrings.swift
         Sources/Vorssaint/Core/Defaults.swift
@@ -538,6 +542,14 @@ if (( TEST )); then
     exit $test_status
 fi
 
+# Source builds stay outside build/, so app/test rebuilds retain the codec
+# cache and the corresponding-source artifact. Installed users need no CLI.
+if (( MEDIA_ENGINES )); then
+    echo "▸ Building compatible bundled media engines…"
+    python3 Tools/build-media-engines.py
+    python3 Tools/verify-media-engines.py .build/media-engines/runtime
+fi
+
 echo "▸ Compiling ($BUILD_CONFIGURATION) against $(basename "$SDK")…"
 APP_SOURCES=(Sources/Vorssaint/**/*.swift)
 if (( ! DEV )); then
@@ -625,9 +637,15 @@ mkdir -p "$STAGE/Contents/Frameworks"
 cp "build/$NOW_PLAYING_ADAPTER" "$STAGE/Contents/Frameworks/$NOW_PLAYING_ADAPTER"
 cp Resources/now-playing.pl "$STAGE/Contents/Resources/now-playing.pl"
 cp Resources/agent-prices.json "$STAGE/Contents/Resources/agent-prices.json"
+if (( MEDIA_ENGINES )); then
+    cp -R .build/media-engines/runtime "$STAGE/Contents/Resources/MediaEngines"
+fi
 cp Resources/com.vorssaint.utils.fan-control.plist \
     "$STAGE/Contents/Library/LaunchDaemons/$FAN_HELPER_ID.plist"
 cp Resources/Info.plist "$STAGE/Contents/Info.plist"
+if (( MEDIA_ENGINES )); then
+    /usr/libexec/PlistBuddy -c "Add :VorssaintBundledMediaEngines bool true" "$STAGE/Contents/Info.plist"
+fi
 cp CHANGELOG.md "$STAGE/Contents/Resources/CHANGELOG.md"
 for lproj in Resources/*.lproj(N); do
     cp -R "$lproj" "$STAGE/Contents/Resources/"
@@ -651,6 +669,10 @@ if (( DEV )); then
     [[ -n "$(git status --porcelain 2>/dev/null)" ]] && SHA="$SHA-dirty"
     /usr/libexec/PlistBuddy -c "Add :VorssaintBuildCommit string '$SHA · $(date '+%Y-%m-%d %H:%M')'" "$STAGE/Contents/Info.plist"
     echo "  stamped dev build: $SHA"
+    if (( MEDIA_ENGINES )); then
+        MEDIA_SOURCES_URL="$(python3 -c 'from pathlib import Path; print(Path(".build/media-engines/corresponding-sources.tar.gz").resolve().as_uri())')"
+        /usr/libexec/PlistBuddy -c "Add :VorssaintMediaSourcesURL string '$MEDIA_SOURCES_URL'" "$STAGE/Contents/Info.plist"
+    fi
 fi
 FAN_HELPER_VERSION="$(
     export LC_ALL=C
@@ -731,6 +753,18 @@ codesign_now_playing_adapter() {
     fi
 }
 
+codesign_media_engine() {
+    local target="$1"
+    if [[ -n "$DEVID" ]]; then
+        codesign_with_timestamp_retry --force --strip-disallowed-xattrs --options runtime --timestamp \
+            --sign "$DEVID" "$target"
+    elif legacy_identity_installed; then
+        codesign --force --strip-disallowed-xattrs --sign "$LEGACY_IDENTITY" "$target"
+    else
+        codesign --force --strip-disallowed-xattrs --sign - "$target"
+    fi
+}
+
 sign_bundle() {
     local bundle="$1"
     local executable="$bundle/Contents/MacOS/$EXECUTABLE"
@@ -743,6 +777,14 @@ sign_bundle() {
         echo "  signing with legacy self-signed identity: $LEGACY_IDENTITY"
     else
         echo "  signing ad-hoc (no identity installed — run Tools/setup-signing.sh)"
+    fi
+    for engine in "$bundle/Contents/Resources/MediaEngines/lib/"*.dylib(N) \
+                  "$bundle/Contents/Resources/MediaEngines/bin/"*(N); do
+        [[ -L "$engine" ]] && continue
+        codesign_media_engine "$engine"
+    done
+    if [[ -d "$bundle/Contents/Resources/MediaEngines" ]]; then
+        python3 Tools/verify-media-engines.py "$bundle/Contents/Resources/MediaEngines" --refresh-signed-hashes
     fi
     [[ -f "$helper" ]] && codesign_fan_helper "$helper"
     [[ -f "$adapter" ]] && codesign_now_playing_adapter "$adapter"

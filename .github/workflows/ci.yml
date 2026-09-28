@@ -29,11 +29,14 @@ jobs:
           swiftc --version | grep -F "Apple Swift version 6.0.3"
           test "$(xcrun --sdk macosx --show-sdk-version)" = "15.2"
 
+      - name: Install engine build prerequisites
+        run: brew install cmake pkgconf
+
       - name: Build
         run: ./build.sh
 
       - name: Selftest
-        run: ./build/Vorssaint --selftest
+        run: build/stage/Vorssaint.app/Contents/MacOS/Vorssaint --selftest
 
       - name: Unit tests
         run: ./build.sh --test
@@ -47,11 +50,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install engine build prerequisites
+        run: brew install cmake pkgconf
+
       - name: Build
         run: ./build.sh
 
       - name: Selftest
-        run: ./build/Vorssaint --selftest
+        run: build/stage/Vorssaint.app/Contents/MacOS/Vorssaint --selftest
 
       - name: Package DMG
         run: ./Tools/make-dmg.sh

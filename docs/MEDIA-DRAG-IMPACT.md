@@ -2,12 +2,81 @@
 
 Measured on September 28, 2026 for issue #2254 and PR #2258.
 
-This report covers the working native Shift-drag feature and a **packaging
-prototype** for the broader conversion engines. The full Tangerine tool catalog
+The original measurements cover the native Shift-drag feature and a **packaging
+prototype**. The compatible bundled-runtime update below measures the actual
+engine integration. The full Tangerine tool catalog
 and Shift–Option editors are still being implemented. The prototype is not a
 release build and does not establish the final size of that full feature.
 
-## Comparable optimized app sizes
+## Compatible bundled-runtime update
+
+The source-built runtime now replaces the incompatible Homebrew prototype.
+This is an **intermediate implementation**, with audio/video conversion and
+WebP/AVIF integrated; document/archive/subtitle routes and Shift–Option editors
+remain. The measurements below do not establish the finished catalog’s size.
+
+| Optimized variant | App files | Comparable ZIP |
+| --- | ---: | ---: |
+| Baseline without feature (`9be00fbc`) | 75.28 MB | 24.09 MB |
+| Current feature with compatible bundled engines | 109.73 MB | 39.25 MB |
+
+The current increment is **34.45 MB / 45.76%** in app files and **15.16 MB**
+in the comparable ZIP. Its private runtime, including notices and manifest,
+is **34.22 MB**. This is 19.63 MB smaller than the earlier 53.85 MB payload,
+while the prototype also included ImageMagick support absent from this runtime.
+Different format coverage prevents treating that difference as an equivalent
+replacement-size comparison.
+
+There are **six source-built third-party projects**: FFmpeg, LAME, Opus, libvpx,
+libwebp and AOM; two executables and 16 real dynamic libraries. Package.swift
+still has no added dependencies. All 18 actual Mach-O binaries declare macOS
+14 and Apple Silicon. Private dependencies, signatures, source checksums and
+file-only protocols passed verification. The app bundles license notices and
+the release workflow stages the matching source archive. These checks do not
+replace execution on a macOS 14 Mac or real Developer ID notarization.
+
+Five warm production-path runs on the same M5 / 16 GB / macOS 27.2 machine:
+
+| Synthetic conversion | Native fallback | Bundled production path |
+| --- | ---: | ---: |
+| 24 MP gradient PNG → JPEG | 0.156 s | 0.158 s (same native image path) |
+| 10 s 1080p30 ProRes MOV with stereo audio → MP4 | 3.076 s | 1.258 s |
+| 10 s stereo 48 kHz WAV → M4A | 0.073 s | 0.112 s |
+| 24 MP gradient PNG → WebP | unavailable | 1.148 s |
+
+Video and audio encoder settings differ between paths; this is **not a
+quality-matched speed comparison**. These fixtures also differ from the original
+prototype fixtures, so cross-report timing comparisons are uncontrolled.
+`/usr/bin/time` RSS accounting peaked around 410 MB for JPEG, 188 MB for bundled
+video and 314 MB for WebP. A separate video process-tree probe sampled about
+199 MB summed RSS, including 186 MB in the encoder child. Shared pages are
+counted more than once and short peaks may be missed; none of these values
+represents extra memory in the running GUI app.
+
+Warm selftest medians were 0.203 s baseline and 0.226 s bundled; the latter also
+launches both private engines for its health check. This is not UI launch time.
+New idle CPU, UI startup and Finder latency measurements remain pending; the
+Mac was locked during this increment’s Computer Use validation.
+
+[Raw compatible-runtime evidence](benchmarks/media-bundled-impact-2026-09-28.json)
+records exact file sizes, versions, signed binary hashes and every timing sample.
+The optimized Swift app uses the same MacOSX26 SDK as the baseline; engine C/C++
+sources were compiled with Xcode 27’s SDK and an explicit macOS 14 target.
+Source recipe, build flags, signing and redistribution are described in
+[engine packaging](MEDIA-ENGINES.md). Reproduce this update with:
+
+```sh
+python3 Tools/measure-media-feature.py --profile bundled \
+  --baseline-app /path/to/baseline/Vorssaint.app \
+  --feature-app build/stage/Vorssaint.app \
+  --engines build/stage/Vorssaint.app/Contents/Resources/MediaEngines \
+  --native-tests build/metrics-tests \
+  --output /tmp/vorssaint-bundled-impact.json
+```
+
+## Original native/prototype measurements
+
+### Comparable optimized app sizes
 
 Both app variants were built with `./build.sh`, `-O`, the same MacOSX26 SDK,
 toolchain and resources. Baseline: `9be00fbc`. Native feature: `6350dbcc`.
@@ -46,8 +115,8 @@ These dependencies introduce codec updates, library compatibility, signing and
 redistribution maintenance. The script records exact versions, binary hashes,
 Homebrew formulas, receipts and available license notices in a manifest.
 
-The app's installed users would not need Homebrew. The prototype script is a
-build tool; it is **not wired into the app or release workflow yet**.
+The prototype was never wired into the app or release workflow. The compatible
+source-built runtime described above is now integrated.
 
 ## Runtime measurements
 
@@ -111,9 +180,9 @@ macOS 14. Those binaries cannot be shipped as this feature's final engines.
 The staging tool now rejects newer minimum deployment versions by default;
 measurement prototypes require an explicit flag.
 
-Compatible binaries need to be built or obtained before release. Engine source
-archives and complete redistribution material also need to accompany release
-artifacts. FFmpeg's [license guidance](https://ffmpeg.org/legal.html) requires
+These were the prototype’s outstanding gates. The compatible source build and
+matching source redistribution described above now replace those binaries;
+macOS 14 execution and official signing/notarization remain unverified here. FFmpeg's [license guidance](https://ffmpeg.org/legal.html) requires
 corresponding sources for its distributed code; ImageMagick's
 [license](https://imagemagick.org/license/) requires attribution and license
 notices. The prototype's manifest and copied notices do not replace that work.

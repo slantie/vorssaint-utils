@@ -11,6 +11,16 @@ enum SelfTest {
         var failures: [String] = []
         var warnings: [String] = []
 
+        if Bundle.main.object(forInfoDictionaryKey: "VorssaintBundledMediaEngines") as? Bool == true {
+            if let engines = MediaEngineBundle.bundled {
+                do {
+                    for name in ["ffmpeg", "ffprobe"] {
+                        _ = try engines.run(name, arguments: ["-version"], batch: FileDragBatch(), timeout: 10)
+                    }
+                } catch { failures.append("bundled media engines: \(error.localizedDescription)") }
+            } else { failures.append("bundled media engines missing or invalid") }
+        }
+
         var assertionID = IOPMAssertionID(0)
         let result = IOPMAssertionCreateWithName("PreventUserIdleSystemSleep" as CFString,
                                                  IOPMAssertionLevel(kIOPMAssertionLevelOn),

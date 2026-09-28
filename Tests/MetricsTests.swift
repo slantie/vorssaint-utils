@@ -10,13 +10,20 @@ struct MetricsTests {
     static func main() {
         if CommandLine.arguments.contains("--media-convert-benchmark") {
             let arguments = CommandLine.arguments
-            guard arguments.count == 4, let format = FileDragFormat(rawValue: arguments[3]) else {
-                fputs("usage: metrics-tests --media-convert-benchmark INPUT FORMAT\n", stderr)
+            guard arguments.count == 4 || (arguments.count == 6 && arguments[4] == "--engines"),
+                  let format = FileDragFormat(rawValue: arguments[3]) else {
+                fputs("usage: metrics-tests --media-convert-benchmark INPUT FORMAT [--engines DIRECTORY]\n", stderr)
+                exit(2)
+            }
+            let engines = arguments.count == 6 ? MediaEngineBundle(root: URL(fileURLWithPath: arguments[5])) : nil
+            if arguments.count == 6 && engines == nil {
+                fputs("invalid media engine bundle\n", stderr)
                 exit(2)
             }
             do {
                 let output = try FileDragConversionEngine.convert(URL(fileURLWithPath: arguments[2]),
-                                                                  to: format, batch: FileDragBatch())
+                                                                  to: format, batch: FileDragBatch(),
+                                                                  engines: engines)
                 print(output.path)
                 exit(0)
             } catch {

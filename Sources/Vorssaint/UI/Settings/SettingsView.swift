@@ -726,6 +726,29 @@ struct AboutSettings: View {
             Text(AppInfo.copyright)
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+            if let engines = MediaEngineBundle.bundled {
+                let strings = MediaEngineStrings.localized(l10n.language)
+                VStack(spacing: 5) {
+                    Text("\(strings.conversion): FFmpeg (LGPL-2.1+), LAME (LGPL-2.0+), Opus, libvpx, libwebp, AOM")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    HStack {
+                        Button(strings.notices) {
+                            NSWorkspace.shared.open(engines.root.appendingPathComponent("notices"))
+                        }
+                        if AppInfo.isDeveloperBuild,
+                           let value = Bundle.main.object(forInfoDictionaryKey: "VorssaintMediaSourcesURL") as? String,
+                           let url = URL(string: value) {
+                            Button(strings.sources) { NSWorkspace.shared.open(url) }
+                        } else if let url = URL(string: AppInfo.repositoryURL.absoluteString
+                                                + "/releases/download/v\(AppInfo.version)/vorssaint-media-sources-\(AppInfo.version).tar.gz") {
+                            Link(strings.sources, destination: url)
+                        }
+                    }
+                    .font(.caption)
+                }
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)

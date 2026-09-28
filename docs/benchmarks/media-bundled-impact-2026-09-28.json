@@ -1,0 +1,656 @@
+{
+  "environment": {
+    "macos": "27.2",
+    "chip": "Apple M5",
+    "ram_bytes": 17179869184
+  },
+  "profile": "bundled",
+  "sizes": {
+    "baseline": {
+      "bundle_file_bytes": 75282630,
+      "zip_bytes": 24091916
+    },
+    "bundled_feature": {
+      "bundle_file_bytes": 109728936,
+      "zip_bytes": 39253730
+    },
+    "private_runtime": {
+      "bundle_file_bytes": 34219694,
+      "zip_bytes": 15089597
+    }
+  },
+  "engine_manifest": {
+    "schema": 1,
+    "target": "arm64-apple-macos14",
+    "packages": [
+      {
+        "name": "lame",
+        "version": "4.0",
+        "source_url": "https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz",
+        "source_identity": "3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb",
+        "archive": "lame-4.0.tar.gz",
+        "sha256": "3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/lame-4.0/configure",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--enable-shared",
+          "--disable-static",
+          "--disable-frontend",
+          "--disable-decoder"
+        ]
+      },
+      {
+        "name": "opus",
+        "version": "1.6.1",
+        "source_url": "https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.6.1.tar.gz",
+        "source_identity": "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1",
+        "archive": "opus-1.6.1.tar.gz",
+        "sha256": "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/opus-1.6.1/configure",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--enable-shared",
+          "--disable-static",
+          "--disable-doc",
+          "--disable-extra-programs"
+        ]
+      },
+      {
+        "name": "libvpx",
+        "version": "1.17.0",
+        "source_url": "https://github.com/webmproject/libvpx/archive/refs/tags/v1.17.0.tar.gz",
+        "source_identity": "1020f184046187baa2985dbde38e0691f49c44088bca7a1842b0236c6081dc0a",
+        "archive": "libvpx-1.17.0.tar.gz",
+        "sha256": "1020f184046187baa2985dbde38e0691f49c44088bca7a1842b0236c6081dc0a",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/libvpx-1.17.0/configure",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--target=arm64-darwin23-gcc",
+          "--enable-shared",
+          "--disable-static",
+          "--enable-pic",
+          "--enable-vp9-highbitdepth",
+          "--disable-examples",
+          "--disable-tools",
+          "--disable-unit-tests",
+          "--disable-docs"
+        ]
+      },
+      {
+        "name": "webp",
+        "version": "1.6.0",
+        "source_url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz",
+        "source_identity": "e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564",
+        "archive": "webp-1.6.0.tar.gz",
+        "sha256": "e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564",
+        "configure": [
+          "cmake",
+          "-S",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/webp-1.6.0",
+          "-B",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/objects/webp-1.6.0",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_INSTALL_PREFIX=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0",
+          "-DCMAKE_OSX_ARCHITECTURES=arm64",
+          "-DCMAKE_OSX_SYSROOT=/Applications/Xcode-27RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DWEBP_BUILD_ANIM_UTILS=OFF",
+          "-DWEBP_BUILD_CWEBP=OFF",
+          "-DWEBP_BUILD_DWEBP=OFF",
+          "-DWEBP_BUILD_GIF2WEBP=OFF",
+          "-DWEBP_BUILD_IMG2WEBP=OFF",
+          "-DWEBP_BUILD_VWEBP=OFF",
+          "-DWEBP_BUILD_WEBPINFO=OFF",
+          "-DWEBP_BUILD_WEBPMUX=OFF",
+          "-DWEBP_BUILD_EXTRAS=OFF"
+        ]
+      },
+      {
+        "name": "aom",
+        "version": "3.15.1",
+        "source_url": "https://aomedia.googlesource.com/aom.git",
+        "source_identity": "44d0a57786f432d933ff64b653347c66f4d0fa1d",
+        "archive": "aom-3.15.1.tar.gz",
+        "sha256": "dc0e5c1e2fabc7756fda36443936f0ca99e96e5d9ba413f992f660fd035e7c2d",
+        "configure": [
+          "cmake",
+          "-S",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/aom-3.15.1",
+          "-B",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/objects/aom-3.15.1",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_INSTALL_PREFIX=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0",
+          "-DCMAKE_OSX_ARCHITECTURES=arm64",
+          "-DCMAKE_OSX_SYSROOT=/Applications/Xcode-27RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DENABLE_DOCS=OFF",
+          "-DENABLE_EXAMPLES=OFF",
+          "-DENABLE_TESTS=OFF",
+          "-DENABLE_TESTDATA=OFF",
+          "-DENABLE_TOOLS=OFF",
+          "-DCONFIG_TUNE_VMAF=0"
+        ]
+      },
+      {
+        "name": "ffmpeg",
+        "version": "9.0.2",
+        "source_url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+        "source_identity": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+        "archive": "ffmpeg-9.0.2.tar.xz",
+        "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/ffmpeg-9.0.2/configure",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--arch=arm64",
+          "--target-os=darwin",
+          "--cc=clang",
+          "--cxx=clang++",
+          "--disable-autodetect",
+          "--disable-static",
+          "--enable-shared",
+          "--enable-pic",
+          "--disable-debug",
+          "--disable-doc",
+          "--disable-ffplay",
+          "--disable-network",
+          "--disable-indevs",
+          "--disable-outdevs",
+          "--disable-protocols",
+          "--enable-protocol=file,pipe",
+          "--enable-videotoolbox",
+          "--enable-audiotoolbox",
+          "--enable-libmp3lame",
+          "--enable-libopus",
+          "--enable-libvpx",
+          "--enable-libwebp",
+          "--enable-libaom",
+          "--enable-zlib",
+          "--extra-cflags=-O2 -fPIC -mmacosx-version-min=14.0 -isysroot /Applications/Xcode-27RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix/include",
+          "--extra-ldflags=-mmacosx-version-min=14.0 -L/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix/lib"
+        ]
+      }
+    ],
+    "files": [
+      {
+        "path": "bin/ffmpeg",
+        "bytes": 441984,
+        "sha256": "814a76e910bac658ae0f93640cd22de561edaadf2a99d04526327ccfa10d4256"
+      },
+      {
+        "path": "bin/ffprobe",
+        "bytes": 237184,
+        "sha256": "a0bebb19e7f4182adfb3fb212793abddaec011cc6ec613daa8ea5cc9ff49c424"
+      },
+      {
+        "path": "lib/libwebp.7.2.0.dylib",
+        "bytes": 529088,
+        "sha256": "ceb6cf58caae6421ace26496b974cdf4f7b380acf2ff652a5974c42a63937c59"
+      },
+      {
+        "path": "lib/libswresample.7.1.102.dylib",
+        "bytes": 121088,
+        "sha256": "249b2fbf23243a56360a042e5c64321e2ea839cb2af969d2c9668677c5fea9b5"
+      },
+      {
+        "path": "lib/libswscale.10.1.102.dylib",
+        "bytes": 1228688,
+        "sha256": "15e8a0279d18fc6fda09d5bf8e6cad8465de218fc01ed3afc24406d72f9ec7e0"
+      },
+      {
+        "path": "lib/libaom.3.15.1.dylib",
+        "bytes": 7206720,
+        "sha256": "c7e40f3b17e6e20c6da2219b68ba9c60868c61138d6d72d328498bc9e51d7da4"
+      },
+      {
+        "path": "lib/libmp3lame.0.dylib",
+        "bytes": 281168,
+        "sha256": "259c297ff3ffa450601621474e4d1992a64b3a908965980c77b812b7bea79770"
+      },
+      {
+        "path": "lib/libavdevice.63.1.102.dylib",
+        "bytes": 53664,
+        "sha256": "b2ea75106628665709942adf3562100bdec050bb058238c45f9aff6bc90f2436"
+      },
+      {
+        "path": "lib/libavfilter.12.1.102.dylib",
+        "bytes": 3911152,
+        "sha256": "7c21300680f14e8d0b5cc97e1180a168b47046583c9b7751ebeed37a69671922"
+      },
+      {
+        "path": "lib/libwebpdemux.2.0.17.dylib",
+        "bytes": 53232,
+        "sha256": "a9b86be7f25db3dd78a4dbac8cf56464ee934ccd2a21f97d490559a96476b5f9"
+      },
+      {
+        "path": "lib/libavformat.63.1.102.dylib",
+        "bytes": 2283104,
+        "sha256": "6c70026753a293374b0353af2ff10b0dc5e4b4bc6c17359eda555b5505917921"
+      },
+      {
+        "path": "lib/libwebpdecoder.3.2.0.dylib",
+        "bytes": 300768,
+        "sha256": "67b5d15222c3718e54a225aaf1e1dbb4fedff137b39ace5a7ae17755fa4ab9fe"
+      },
+      {
+        "path": "lib/libavutil.61.1.102.dylib",
+        "bytes": 756512,
+        "sha256": "c565fb577f259446bcbce6643d4e947a0d865a5cc4928630358fcc3452be8e2c"
+      },
+      {
+        "path": "lib/libwebpmux.3.1.2.dylib",
+        "bytes": 89360,
+        "sha256": "63b9c76c43503d4b81c5a8335d03c69428e8f1ccb70671983b69cfe24fcbbe5c"
+      },
+      {
+        "path": "lib/libavcodec.63.1.102.dylib",
+        "bytes": 13322080,
+        "sha256": "52cc09601d29d733aa1b256599bb84f711f64aa82c5fa1888a3c35ded3283df0"
+      },
+      {
+        "path": "lib/libvpx.12.dylib",
+        "bytes": 2637232,
+        "sha256": "8e8a063d94f7ad7a44262de2f469c069f25a26e1bb70228794ba50f3e63832fb"
+      },
+      {
+        "path": "lib/libopus.0.dylib",
+        "bytes": 488112,
+        "sha256": "0237f6de5b51b39aa2d79e805705d266cead7ffbd783b78c34ef87d3c5bdd30e"
+      },
+      {
+        "path": "lib/libsharpyuv.0.1.2.dylib",
+        "bytes": 85920,
+        "sha256": "97ee256e9e5d87d95a74216d3445c1c6fa17f0a18cda8548f8c64a25a445cfdd"
+      }
+    ],
+    "toolchain": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.2.0\nThread model: posix\nInstalledDir: /Applications/Xcode-27RC.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "sdk": "/Applications/Xcode-27RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "sources_artifact": "corresponding-sources.tar.gz"
+  },
+  "workloads": {
+    "baseline_selftest": {
+      "median_wall_seconds": 0.2033725829969626,
+      "samples": [
+        {
+          "wall_seconds": 0.2294665840017842,
+          "peak_rss_bytes": 41533440,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.20906166700297035,
+          "peak_rss_bytes": 41549824,
+          "user_seconds": 0.03,
+          "system_seconds": 0.04
+        },
+        {
+          "wall_seconds": 0.20247633299732115,
+          "peak_rss_bytes": 41566208,
+          "user_seconds": 0.03,
+          "system_seconds": 0.04
+        },
+        {
+          "wall_seconds": 0.2033725829969626,
+          "peak_rss_bytes": 41566208,
+          "user_seconds": 0.03,
+          "system_seconds": 0.04
+        },
+        {
+          "wall_seconds": 0.2020471669966355,
+          "peak_rss_bytes": 41549824,
+          "user_seconds": 0.03,
+          "system_seconds": 0.05
+        }
+      ],
+      "median_time_peak_rss_bytes": 41549824
+    },
+    "feature_selftest": {
+      "median_wall_seconds": 0.22573900000134017,
+      "samples": [
+        {
+          "wall_seconds": 0.23134654099703766,
+          "peak_rss_bytes": 41730048,
+          "user_seconds": 0.04,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.21885416700388305,
+          "peak_rss_bytes": 41730048,
+          "user_seconds": 0.04,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.22039408300770447,
+          "peak_rss_bytes": 41762816,
+          "user_seconds": 0.04,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.22573900000134017,
+          "peak_rss_bytes": 41762816,
+          "user_seconds": 0.04,
+          "system_seconds": 0.05
+        },
+        {
+          "wall_seconds": 0.2264155420125462,
+          "peak_rss_bytes": 41713664,
+          "user_seconds": 0.04,
+          "system_seconds": 0.05
+        }
+      ],
+      "median_time_peak_rss_bytes": 41730048
+    },
+    "native_24mp_png_to_jpeg": {
+      "median_wall_seconds": 0.15649854199727997,
+      "samples": [
+        {
+          "wall_seconds": 0.17217424999398645,
+          "peak_rss_bytes": 409780224,
+          "user_seconds": 0.11,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.15600254099990707,
+          "peak_rss_bytes": 409796608,
+          "user_seconds": 0.11,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.1627533749997383,
+          "peak_rss_bytes": 409812992,
+          "user_seconds": 0.11,
+          "system_seconds": 0.04
+        },
+        {
+          "wall_seconds": 0.15649854199727997,
+          "peak_rss_bytes": 409862144,
+          "user_seconds": 0.11,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.15530658399802633,
+          "peak_rss_bytes": 409796608,
+          "user_seconds": 0.11,
+          "system_seconds": 0.03
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 387039232,
+        "sampled_children_peak_sum_rss_bytes": 0,
+        "samples": 3,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      },
+      "median_time_peak_rss_bytes": 409796608
+    },
+    "bundled_24mp_png_to_jpeg": {
+      "median_wall_seconds": 0.15796024999872316,
+      "samples": [
+        {
+          "wall_seconds": 0.15981133400055114,
+          "peak_rss_bytes": 410091520,
+          "user_seconds": 0.11,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.15494337500422262,
+          "peak_rss_bytes": 410075136,
+          "user_seconds": 0.11,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.15767950000008568,
+          "peak_rss_bytes": 410124288,
+          "user_seconds": 0.11,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.15796024999872316,
+          "peak_rss_bytes": 410091520,
+          "user_seconds": 0.11,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 0.21210158300527837,
+          "peak_rss_bytes": 410238976,
+          "user_seconds": 0.13,
+          "system_seconds": 0.04
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 347291648,
+        "sampled_children_peak_sum_rss_bytes": 0,
+        "samples": 3,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      },
+      "median_time_peak_rss_bytes": 410091520
+    },
+    "native_1080p_video_to_mp4": {
+      "median_wall_seconds": 3.075958166999044,
+      "samples": [
+        {
+          "wall_seconds": 3.0700309579988243,
+          "peak_rss_bytes": 50315264,
+          "user_seconds": 0.21,
+          "system_seconds": 0.25
+        },
+        {
+          "wall_seconds": 3.0771751670108642,
+          "peak_rss_bytes": 51331072,
+          "user_seconds": 0.26,
+          "system_seconds": 0.29
+        },
+        {
+          "wall_seconds": 3.07635008401121,
+          "peak_rss_bytes": 55345152,
+          "user_seconds": 0.24,
+          "system_seconds": 0.27
+        },
+        {
+          "wall_seconds": 3.0755820839985972,
+          "peak_rss_bytes": 51036160,
+          "user_seconds": 0.25,
+          "system_seconds": 0.27
+        },
+        {
+          "wall_seconds": 3.075958166999044,
+          "peak_rss_bytes": 55328768,
+          "user_seconds": 0.26,
+          "system_seconds": 0.29
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 64602112,
+        "sampled_children_peak_sum_rss_bytes": 51904512,
+        "samples": 43,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      },
+      "median_time_peak_rss_bytes": 51331072
+    },
+    "bundled_1080p_video_to_mp4": {
+      "median_wall_seconds": 1.257683083997108,
+      "samples": [
+        {
+          "wall_seconds": 1.264057791995583,
+          "peak_rss_bytes": 187826176,
+          "user_seconds": 2.63,
+          "system_seconds": 0.09
+        },
+        {
+          "wall_seconds": 1.251541207995615,
+          "peak_rss_bytes": 186875904,
+          "user_seconds": 2.64,
+          "system_seconds": 0.09
+        },
+        {
+          "wall_seconds": 1.2594401669921353,
+          "peak_rss_bytes": 186597376,
+          "user_seconds": 2.62,
+          "system_seconds": 0.09
+        },
+        {
+          "wall_seconds": 1.257683083997108,
+          "peak_rss_bytes": 187744256,
+          "user_seconds": 2.62,
+          "system_seconds": 0.09
+        },
+        {
+          "wall_seconds": 1.2568539999920176,
+          "peak_rss_bytes": 187531264,
+          "user_seconds": 2.62,
+          "system_seconds": 0.09
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 199213056,
+        "sampled_children_peak_sum_rss_bytes": 186073088,
+        "samples": 19,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      },
+      "median_time_peak_rss_bytes": 187531264
+    },
+    "native_10s_wav_to_m4a": {
+      "median_wall_seconds": 0.07266729199909605,
+      "samples": [
+        {
+          "wall_seconds": 0.07954870798857883,
+          "peak_rss_bytes": 12926976,
+          "user_seconds": 0.06,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.07410945900483057,
+          "peak_rss_bytes": 12992512,
+          "user_seconds": 0.06,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.07212808399344794,
+          "peak_rss_bytes": 12926976,
+          "user_seconds": 0.05,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.07266729199909605,
+          "peak_rss_bytes": 12992512,
+          "user_seconds": 0.05,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.07128270799876191,
+          "peak_rss_bytes": 12959744,
+          "user_seconds": 0.05,
+          "system_seconds": 0.0
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 311296,
+        "sampled_children_peak_sum_rss_bytes": 0,
+        "samples": 2,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      },
+      "median_time_peak_rss_bytes": 12959744
+    },
+    "bundled_10s_wav_to_m4a": {
+      "median_wall_seconds": 0.1121004579908913,
+      "samples": [
+        {
+          "wall_seconds": 0.14177841700438876,
+          "peak_rss_bytes": 14843904,
+          "user_seconds": 0.12,
+          "system_seconds": 0.01
+        },
+        {
+          "wall_seconds": 0.1121004579908913,
+          "peak_rss_bytes": 14925824,
+          "user_seconds": 0.1,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.11326912500953767,
+          "peak_rss_bytes": 14909440,
+          "user_seconds": 0.1,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.11165762500604615,
+          "peak_rss_bytes": 14909440,
+          "user_seconds": 0.1,
+          "system_seconds": 0.0
+        },
+        {
+          "wall_seconds": 0.11207791700144298,
+          "peak_rss_bytes": 14876672,
+          "user_seconds": 0.1,
+          "system_seconds": 0.0
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 27688960,
+        "sampled_children_peak_sum_rss_bytes": 14532608,
+        "samples": 2,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      },
+      "median_time_peak_rss_bytes": 14909440
+    },
+    "bundled_24mp_png_to_webp": {
+      "median_wall_seconds": 1.148181584008853,
+      "samples": [
+        {
+          "wall_seconds": 1.1486300419928739,
+          "peak_rss_bytes": 313573376,
+          "user_seconds": 1.1,
+          "system_seconds": 0.04
+        },
+        {
+          "wall_seconds": 1.1451223339972785,
+          "peak_rss_bytes": 313540608,
+          "user_seconds": 1.09,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 1.1466748329985421,
+          "peak_rss_bytes": 313540608,
+          "user_seconds": 1.1,
+          "system_seconds": 0.03
+        },
+        {
+          "wall_seconds": 1.1490910830034409,
+          "peak_rss_bytes": 313573376,
+          "user_seconds": 1.1,
+          "system_seconds": 0.04
+        },
+        {
+          "wall_seconds": 1.148181584008853,
+          "peak_rss_bytes": 313540608,
+          "user_seconds": 1.1,
+          "system_seconds": 0.04
+        }
+      ],
+      "process_tree_probe": {
+        "sampled_peak_sum_rss_bytes": 315572224,
+        "sampled_children_peak_sum_rss_bytes": 199475200,
+        "samples": 18,
+        "interval_seconds": 0.05,
+        "note": "Separate run; shared pages double counted; short peaks may be missed."
+      },
+      "median_time_peak_rss_bytes": 313540608
+    }
+  },
+  "limitations": [
+    "Synthetic files on one Mac, five sequential warm runs per workload.",
+    "CPU seconds and maximum RSS are /usr/bin/time process accounting, not app idle overhead.",
+    "The test harness uses the actual conversion engine but is not a full app UI session.",
+    "Video encoder settings differ; timings are illustrative costs, not a quality-matched speed ranking.",
+    "The compatible runtime is integrated, but the full requested tool catalog is not finished.",
+    "Fixtures differ from the original prototype's testsrc2 video; cross-report timing comparisons are not controlled.",
+    "/usr/bin/time RSS is process accounting and can reflect child processes; it does not isolate GUI app memory."
+  ],
+  "fixture_description": "24 MP RGB gradient; 10 s 1080p30 static ProRes MOV with stereo audio; 10 s stereo 48 kHz PCM sine wave."
+}

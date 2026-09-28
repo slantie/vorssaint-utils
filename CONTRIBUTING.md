@@ -6,22 +6,29 @@ under GPL-3.0-or-later unless stated otherwise.
 ## Getting started
 
 You need macOS 14 or newer, Apple Silicon and the Xcode Command Line Tools.
-The project builds with `build.sh`, without an Xcode project or external package
-dependencies. `Package.swift` supports editor indexing; it does not assemble or
-sign the app bundle.
+The project builds with `build.sh`, without an Xcode project or Swift package
+dependencies. Full media conversion also needs the build tools CMake and pkgconf
+(`brew install cmake pkgconf`). Pinned codec sources compile locally for macOS 14;
+the installed app bundles the engines and needs no Homebrew installation.
+`Package.swift` supports editor indexing; it does not assemble or sign the app bundle.
 
 ```sh
 git clone https://github.com/vorssaint/vorssaint-utils.git
 cd vorssaint-utils
 ./build.sh --dev
-./build/VorssaintDeveloper --selftest
+'build/stage.noindex/Vorssaint (Developer).app/Contents/MacOS/VorssaintDeveloper' --selftest
 ./build.sh --test
 ```
+
+The first full build takes longer to compile the codecs. Later builds reuse
+`.build/media-engines`. `./build.sh --without-media-engines` builds the limited
+native conversion variant for unrelated development. See
+[media engine packaging](docs/MEDIA-ENGINES.md) for source redistribution and verification.
 
 To install and launch the separate Developer app, use `./build.sh --dev --install`.
 It has its own preferences and permissions and does not replace the official app.
 A plain `./build.sh` builds the optimized variant used by CI; its health check is
-`./build/Vorssaint --selftest`.
+`build/stage/Vorssaint.app/Contents/MacOS/Vorssaint --selftest`.
 
 ### Stable signing
 

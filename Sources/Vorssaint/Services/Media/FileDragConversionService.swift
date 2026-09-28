@@ -85,15 +85,12 @@ final class FileDragConversionService: ObservableObject {
         let urls = fileURLs(from: pasteboard)
         guard !urls.isEmpty else { return }
         let kinds = urls.compactMap { url -> FileDragFormat.Kind? in
-            guard let type = (try? url.resourceValues(forKeys: [.contentTypeKey]))?.contentType else { return nil }
-            if type.conforms(to: .image) { return .image }
-            if type.conforms(to: .movie) || type.conforms(to: .video) {
-                return ["mp4", "mov", "m4v"].contains(url.pathExtension.lowercased()) ? .video : nil
+            guard let kind = FileDragFormat.inputKind(for: url) else { return nil }
+            if MediaEngineBundle.bundled == nil {
+                if kind == .video && !["mp4", "mov", "m4v"].contains(url.pathExtension.lowercased()) { return nil }
+                if kind == .audio && !["mp3", "m4a", "wav", "aiff", "aif", "flac"].contains(url.pathExtension.lowercased()) { return nil }
             }
-            if type.conforms(to: .audio) {
-                return ["mp3", "m4a", "wav", "aiff", "aif", "flac"].contains(url.pathExtension.lowercased()) ? .audio : nil
-            }
-            return nil
+            return kind
         }
         guard kinds.count == urls.count, let kind = kinds.first,
               kinds.allSatisfy({ $0 == kind }) else { return }
@@ -102,10 +99,13 @@ final class FileDragConversionService: ObservableObject {
         case .image:
             let destinationTypes = Set((CGImageDestinationCopyTypeIdentifiers() as? [String]) ?? [])
             formats = FileDragFormat.availableImageFormats(destinationTypes: destinationTypes)
+            if MediaEngineBundle.bundled != nil {
+                for format in [FileDragFormat.webp, .avif] where !formats.contains(format) { formats.append(format) }
+            }
         case .video:
-            formats = [.mp4, .mov]
+            formats = MediaEngineBundle.bundled == nil ? [.mp4, .mov] : [.mp4, .mov, .mkv, .webm, .avi, .wmv, .gif, .mp3]
         case .audio:
-            formats = [.m4a, .wav, .aiff, .flac]
+            formats = MediaEngineBundle.bundled == nil ? [.m4a, .wav, .aiff, .flac] : [.mp3, .m4a, .wav, .flac, .ogg, .opus, .aiff, .wma]
         }
         guard !formats.isEmpty else { return }
         dropSession = FileDragDropSession(inputs: urls, formats: formats)

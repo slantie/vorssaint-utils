@@ -7,15 +7,16 @@ import UniformTypeIdentifiers
 
 enum FileDragFormat: String, CaseIterable, Identifiable {
     case jpeg = "jpg", png, heic, tiff, bmp, gif, webp, avif, pdf
-    case mp4, mov, m4a, wav, aiff, flac
+    case mp4, mov, mkv, webm, avi, wmv
+    case mp3, m4a, wav, aiff, flac, ogg, opus, wma
 
     enum Kind { case image, video, audio }
 
     var kind: Kind {
         switch self {
         case .jpeg, .png, .heic, .tiff, .bmp, .gif, .webp, .avif, .pdf: return .image
-        case .mp4, .mov: return .video
-        case .m4a, .wav, .aiff, .flac: return .audio
+        case .mp4, .mov, .mkv, .webm, .avi, .wmv: return .video
+        case .mp3, .m4a, .wav, .aiff, .flac, .ogg, .opus, .wma: return .audio
         }
     }
 
@@ -32,6 +33,17 @@ enum FileDragFormat: String, CaseIterable, Identifiable {
             guard let type = format.typeIdentifier else { return false }
             return destinationTypes.contains(type)
         }
+    }
+
+    static func inputKind(for input: URL) -> Kind? {
+        let ext = input.pathExtension.lowercased()
+        if ["mp4", "mov", "m4v", "mkv", "webm", "avi", "wmv"].contains(ext) { return .video }
+        if ["mp3", "m4a", "wav", "aiff", "aif", "flac", "ogg", "opus", "wma"].contains(ext) { return .audio }
+        guard let type = (try? input.resourceValues(forKeys: [.contentTypeKey]))?.contentType else { return nil }
+        if type.conforms(to: .image) { return .image }
+        if type.conforms(to: .movie) || type.conforms(to: .video) { return .video }
+        if type.conforms(to: .audio) { return .audio }
+        return nil
     }
 
     static func uniqueOutputURL(for input: URL, format: Self,
@@ -76,13 +88,26 @@ final class FileDragBatch: @unchecked Sendable {
 
 enum FileDragConversionEngine {
     static func convert(_ input: URL, to format: FileDragFormat,
-                        batch: FileDragBatch) throws -> URL {
+                        batch: FileDragBatch, engines: MediaEngineBundle? = .bundled) throws -> URL {
         guard !batch.isCancelled else { throw CancellationError() }
-        guard let type = (try? input.resourceValues(forKeys: [.contentTypeKey]))?.contentType,
-              (format.kind == .image && type.conforms(to: .image)
-               || format.kind == .video && (type.conforms(to: .movie) || type.conforms(to: .video))
-               || format.kind == .audio && type.conforms(to: .audio)) else {
+        guard let values = try? input.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
+              values.isRegularFile == true, values.isSymbolicLink != true,
+              let kind = FileDragFormat.inputKind(for: input),
+              kind == format.kind || (kind == .video && (format == .gif || format == .mp3)) else {
             throw CocoaError(.fileReadUnsupportedScheme)
+        }
+        if let engines, format.kind == .video || format.kind == .audio
+            || (format == .gif && kind == .video) {
+            return try engines.convert(input, to: format, batch: batch)
+        }
+        if let engines, format == .webp || format == .avif {
+            // Do not silently flatten an animated image for still-only outputs.
+            guard let source = CGImageSourceCreateWithURL(input as CFURL, nil),
+                  CGImageSourceGetCount(source) == 1,
+                  let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                  let size = MediaSupport.imageDisplaySize(properties: properties),
+                  MediaSupport.imageRenderSizeIsSafe(size) else { throw CocoaError(.fileReadCorruptFile) }
+            return try engines.convert(input, to: format, batch: batch)
         }
         switch format.kind {
         case .image: return try convertImage(input, to: format, batch: batch)

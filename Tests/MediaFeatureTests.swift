@@ -14,6 +14,11 @@ import VMStatisticsCompat
 enum MediaFeatureTests {
     static func run(_ suite: TestSuite) {
         testFileDragConversion(suite)
+        for language in AppLanguage.allCases {
+            let strings = MediaEngineStrings.localized(language)
+            suite.expect(!strings.conversion.isEmpty && !strings.notices.isEmpty && !strings.sources.isEmpty,
+                         "Media engine credits are localized for \(language)")
+        }
         suite.expect(MediaImageFormat.sanitized("pdf") == .pdf,
                "Image converter accepts the PDF format")
         suite.expect(MediaImageFormat.pdf.fileExtension == "pdf",
@@ -601,5 +606,78 @@ enum MediaFeatureTests {
         suite.expect(audioOutput?.pathExtension == "aiff"
                      && ((try? audioOutput?.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0) > 0,
                      "Shift-drag converts real WAV audio through a bounded encoder")
+        testBundledConversions(suite, image: input, audio: wave, directory: directory)
+    }
+
+    private static func testBundledConversions(_ suite: TestSuite, image: URL, audio: URL, directory: URL) {
+        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent(".build/media-engines/runtime")
+        guard let engines = MediaEngineBundle(root: root) else {
+            print("media: bundled codec fixtures skipped (build Tools/build-media-engines.py first)")
+            return
+        }
+        func probe(_ url: URL?) -> [[String: Any]]? {
+            guard let url, let data = try? engines.run("ffprobe", arguments: [
+                "-v", "error", "-show_streams", "-of", "json", url.path,
+            ], batch: FileDragBatch(), timeout: 30, maxOutputBytes: 65_536),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+            return json["streams"] as? [[String: Any]]
+        }
+        for format in [FileDragFormat.mp3, .m4a, .wav, .flac, .ogg, .opus, .aiff, .wma] {
+            do {
+                let output = try FileDragConversionEngine.convert(audio, to: format, batch: FileDragBatch(), engines: engines)
+                suite.expect(output.deletingLastPathComponent() == directory
+                             && probe(output)?.first?["codec_type"] as? String == "audio",
+                             "Bundled \(format.title) output is decodable audio beside the original")
+                let roundtrip = try FileDragConversionEngine.convert(output, to: .wav, batch: FileDragBatch(), engines: engines)
+                suite.expect(probe(roundtrip)?.first?["codec_name"] as? String == "pcm_s16le",
+                             "Bundled \(format.title) input converts back to PCM WAV")
+            } catch { suite.expect(false, "Bundled \(format.title) conversion: \(error.localizedDescription)") }
+        }
+        for format in [FileDragFormat.webp, .avif] {
+            do {
+                let output = try FileDragConversionEngine.convert(image, to: format, batch: FileDragBatch(), engines: engines)
+                let source = CGImageSourceCreateWithURL(output as CFURL, nil)
+                let decoded = source.flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) }
+                suite.expect(decoded?.width == 8 && decoded?.height == 8,
+                             "Bundled \(format.title) output is a readable image of the original dimensions")
+                let properties = source.flatMap { CGImageSourceCopyPropertiesAtIndex($0, 0, nil) as? [CFString: Any] }
+                suite.expect(properties?[kCGImagePropertyHasAlpha] as? Bool == true,
+                             "Bundled \(format.title) preserves the PNG alpha channel")
+            } catch { suite.expect(false, "Bundled \(format.title) image conversion: \(error.localizedDescription)") }
+        }
+        let movie = directory.appendingPathComponent("Movie.mov")
+        do {
+            _ = try engines.run("ffmpeg", arguments: ["-nostdin", "-v", "error", "-n",
+                "-loop", "1", "-i", image.path, "-i", audio.path, "-t", "0.5",
+                "-vf", "scale=64:64", "-c:v", "mpeg4", "-c:a", "pcm_s16le", movie.path,
+            ], batch: FileDragBatch(), timeout: 30)
+        } catch { suite.expect(false, "Bundled video fixture: \(error.localizedDescription)"); return }
+        let originalMovie = try? Data(contentsOf: movie)
+        for format in [FileDragFormat.mp4, .mov, .mkv, .webm, .avi, .wmv, .gif, .mp3] {
+            do {
+                let output = try FileDragConversionEngine.convert(movie, to: format, batch: FileDragBatch(), engines: engines)
+                let streams = probe(output)
+                suite.expect(streams?.contains { $0["codec_type"] as? String == (format == .mp3 ? "audio" : "video") } == true,
+                             "Bundled video to \(format.title) produces a decodable output")
+                if format != .gif && format != .mp3 {
+                    suite.expect(streams?.contains { $0["codec_type"] as? String == "audio" } == true,
+                                 "Bundled \(format.title) video output retains audio")
+                    let roundtrip = try FileDragConversionEngine.convert(output, to: .mp4, batch: FileDragBatch(), engines: engines)
+                    suite.expect(probe(roundtrip)?.contains { $0["codec_type"] as? String == "video" } == true,
+                                 "Bundled \(format.title) video input converts back to MP4")
+                }
+            } catch { suite.expect(false, "Bundled video to \(format.title): \(error.localizedDescription)") }
+        }
+        suite.expect((try? Data(contentsOf: movie)) == originalMovie,
+                     "Bundled codec conversions preserve the original video bytes")
+        let link = directory.appendingPathComponent("Linked.mov")
+        try? FileManager.default.createSymbolicLink(at: link, withDestinationURL: movie)
+        suite.expect((try? FileDragConversionEngine.convert(link, to: .mp4, batch: FileDragBatch(), engines: engines)) == nil,
+                     "The bundled conversion entry point rejects symbolic links")
+        let protocols = try? engines.run("ffmpeg", arguments: ["-hide_banner", "-protocols"], batch: FileDragBatch(), timeout: 30)
+        let text = protocols.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        suite.expect(text.contains("file") && text.contains("pipe") && !text.contains("http") && !text.contains("tcp"),
+                     "The bundled encoder only supports local file and pipe protocols")
     }
 }

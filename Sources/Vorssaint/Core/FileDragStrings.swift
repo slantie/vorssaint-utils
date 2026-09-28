@@ -28,7 +28,7 @@ struct FileDragStrings {
                                  completedFormat: "%d arquivos convertidos", partialFormat: "%d convertidos; %d falharam",
                                  failedFormat: "Não foi possível converter %d de %d arquivos")
         case .tr: return .init(setting: "Shift ile sürükleyerek dosyaları dönüştür",
-                               settingHint: "Finder'da Shift tuşunu basılı tutarak dosyaları sürükleyin ve bir biçime bırakın. Kopyalar özgünlerin yanına kaydedilir.",
+                               settingHint: "Finder’da Shift tuşunu basılı tutarak dosyaları sürükleyin ve bir biçime bırakın. Kopyalar özgünlerin yanına kaydedilir.",
                                convert: "Dönüştür", fileCountFormat: "%d dosya",
                                dropHint: "Kopyaları özgünlerin yanına dönüştürmek için bir biçime bırakın",
                                completedFormat: "%d dosya dönüştürüldü", partialFormat: "%d dönüştürüldü; %d başarısız",
