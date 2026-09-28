@@ -16,9 +16,10 @@ let package = Package(
             name: "VMStatisticsCompat",
             path: "Sources/VMStatisticsCompat"
         ),
+        .systemLibrary(name: "SystemArchive", path: "Sources/SystemArchive"),
         .executableTarget(
             name: "Vorssaint",
-            dependencies: ["VMStatisticsCompat", "HIDEventSystem"],
+            dependencies: ["VMStatisticsCompat", "HIDEventSystem", "SystemArchive"],
             path: "Sources/Vorssaint"
         )
     ]

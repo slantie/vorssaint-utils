@@ -6,24 +6,27 @@ import ImageIO
 import UniformTypeIdentifiers
 
 enum FileDragFormat: String, CaseIterable, Identifiable {
-    case jpeg = "jpg", png, heic, tiff, bmp, gif, webp, avif, pdf
+    case jpeg = "jpg", png, heic, tiff, bmp, gif, webp, avif, svg, pdf
     case mp4, mov, mkv, webm, avi, wmv
     case mp3, m4a, wav, aiff, flac, ogg, opus, wma
-    case txt, docx
+    case txt, docx, srt, vtt, zip, tar, rar
+    case gzip = "gz"
 
-    enum Kind { case image, video, audio, document }
+    enum Kind { case image, video, audio, document, text, subtitle, archive }
 
     var kind: Kind {
         switch self {
-        case .jpeg, .png, .heic, .tiff, .bmp, .gif, .webp, .avif, .pdf: return .image
+        case .jpeg, .png, .heic, .tiff, .bmp, .gif, .webp, .avif, .svg, .pdf: return .image
         case .mp4, .mov, .mkv, .webm, .avi, .wmv: return .video
         case .mp3, .m4a, .wav, .aiff, .flac, .ogg, .opus, .wma: return .audio
         case .txt, .docx: return .document
+        case .srt, .vtt: return .subtitle
+        case .zip, .tar, .gzip, .rar: return .archive
         }
     }
 
     var id: String { rawValue }
-    var title: String { rawValue.uppercased() }
+    var title: String { self == .gzip ? "GZIP" : rawValue.uppercased() }
 
     var typeIdentifier: String? {
         UTType(filenameExtension: rawValue)?.identifier
@@ -39,7 +42,11 @@ enum FileDragFormat: String, CaseIterable, Identifiable {
 
     static func inputKind(for input: URL) -> Kind? {
         let ext = input.pathExtension.lowercased()
+        if ext == "svg" { return .image }
         if ext == "pdf" { return .document }
+        if ext == "txt" { return .text }
+        if ext == "srt" || ext == "vtt" { return .subtitle }
+        if ["zip", "tar", "gz", "gzip", "tgz", "rar"].contains(ext) { return .archive }
         if ["mp4", "mov", "m4v", "mkv", "webm", "avi", "wmv"].contains(ext) { return .video }
         if ["mp3", "m4a", "wav", "aiff", "aif", "flac", "ogg", "opus", "wma"].contains(ext) { return .audio }
         guard let type = (try? input.resourceValues(forKeys: [.contentTypeKey]))?.contentType else { return nil }
@@ -92,14 +99,42 @@ final class FileDragBatch: @unchecked Sendable {
 
 enum FileDragConversionEngine {
     static func convert(_ input: URL, to format: FileDragFormat,
-                        batch: FileDragBatch, engines: MediaEngineBundle? = .bundled) throws -> URL {
+                        batch: FileDragBatch, engines: MediaEngineBundle? = .bundled, subtitleTiming: SubtitleTiming = SubtitleTiming()) throws -> URL {
         guard !batch.isCancelled else { throw CancellationError() }
         guard let values = try? input.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
               values.isRegularFile == true, values.isSymbolicLink != true,
               let kind = FileDragFormat.inputKind(for: input),
-              kind == format.kind || (kind == .video && (format == .gif || format == .mp3))
+              kind == .text || kind == .subtitle || kind == .archive || kind == format.kind || (kind == .video && (format == .gif || format == .mp3))
+                || (kind == .image && format == .docx)
                 || (kind == .document && [.jpeg, .png].contains(format)) else {
             throw CocoaError(.fileReadUnsupportedScheme)
+        }
+        if input.pathExtension.lowercased() == "svg" {
+            guard let engines else { throw CocoaError(.executableNotLoadable) }
+            let rendered = try ImageDocumentTools.renderSVG(input,batch:batch,engines:engines)
+            defer { try? FileManager.default.removeItem(at:rendered.deletingLastPathComponent()) }
+            let output = FileDragFormat.uniqueOutputURL(for:input,format:format)
+            if format == .svg {
+                let staged = try MediaSupport.temporaryOutputURL(for:output); defer { MediaSupport.discardStagedOutput(staged) }
+                try FileManager.default.copyItem(at:rendered.deletingLastPathComponent().appendingPathComponent("Input.svg"),to:staged)
+                guard !batch.isCancelled else { throw CancellationError() }
+                try MediaSupport.installStagedOutput(staged,at:output,replacingExisting:false)
+            } else {
+                let converted = try convert(rendered,to:format,batch:batch,engines:engines)
+                guard !batch.isCancelled else { throw CancellationError() }
+                try MediaSupport.installStagedOutput(converted,at:output,replacingExisting:false)
+            }
+            return output
+        }
+        if kind == .image && (format == .svg || format == .docx) { return try ImageDocumentTools.convert(input,to:format,batch:batch) }
+        if kind == .text || kind == .subtitle {
+            guard kind == .text ? [.pdf, .png, .jpeg, .srt, .vtt].contains(format) : [.txt, .srt, .vtt].contains(format) else { throw CocoaError(.fileWriteUnsupportedScheme) }
+            return try TextFileTools.convert(input, to: format.rawValue, batch: batch, timing: subtitleTiming)
+        }
+        if kind == .archive {
+            let archiveFormat: FileArchiveFormat
+            switch format { case .zip: archiveFormat = .zip; case .tar: archiveFormat = .tar; case .gzip: archiveFormat = .gzip; case .rar: archiveFormat = .rar; default: throw CocoaError(.fileWriteUnsupportedScheme) }
+            return try FileArchiveTools.convert(input, to: archiveFormat, batch: batch)
         }
         if kind == .document { return try PDFTools.convert(input, to: format, batch: batch) }
         if let engines, format.kind == .video || format.kind == .audio
@@ -118,7 +153,7 @@ enum FileDragConversionEngine {
         switch format.kind {
         case .image: return try convertImage(input, to: format, batch: batch)
         case .video, .audio: return try convertMedia(input, to: format, batch: batch)
-        case .document: throw CocoaError(.fileReadUnsupportedScheme)
+        case .document, .text, .subtitle, .archive: throw CocoaError(.fileReadUnsupportedScheme)
         }
     }
 

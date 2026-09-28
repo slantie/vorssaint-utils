@@ -25,12 +25,12 @@ struct MediaEngineBundle {
 
     func run(_ name: String, arguments: [String], batch: FileDragBatch,
              timeout: TimeInterval = 30 * 60, maxOutputBytes: Int = 16_384) throws -> Data {
-        guard name == "ffmpeg" || name == "ffprobe" else { throw CocoaError(.executableNotLoadable) }
+        guard name == "ffmpeg" || name == "ffprobe" || name == "svg-renderer" else { throw CocoaError(.executableNotLoadable) }
         let child = try batch.beginProcess()
         defer { batch.endProcess(child) }
         let result = BoundedProcessRunner.run(root.appendingPathComponent("bin/" + name).path,
                                               arguments, timeout: timeout, maxOutputBytes: maxOutputBytes,
-                                              cancellation: child)
+                                              cancellation: child, includeStandardError: name != "ffprobe")
         guard !batch.isCancelled else { throw CancellationError() }
         guard result.status == 0 else {
             let detail = String(data: result.output, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)

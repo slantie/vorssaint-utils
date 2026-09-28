@@ -16,6 +16,11 @@ enum MediaFeatureTests {
         testFileDragConversion(suite)
         PDFToolTests.run(suite)
         PDFWorkspaceModelTests.run(suite)
+        ImageFileToolTests.run(suite)
+        FileDocumentConversionTests.run(suite)
+        AVFileToolTests.run(suite)
+        FileMetadataToolTests.run(suite)
+        FileJobWorkspaceTests.run(suite)
         for language in AppLanguage.allCases {
             let strings = MediaEngineStrings.localized(language)
             suite.expect(!strings.conversion.isEmpty && !strings.notices.isEmpty && !strings.sources.isEmpty,

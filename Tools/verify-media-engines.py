@@ -60,6 +60,7 @@ def main():
             raise SystemExit(f"External library alias: {link.name}")
     for name in ["ffmpeg", "ffprobe"]:
         command(str(root / "bin" / name), "-version")
+    command(str(root / "bin/svg-renderer"), "--version")
     protocols = command(str(root / "bin/ffmpeg"), "-hide_banner", "-protocols")
     names = {line.strip() for line in protocols.splitlines() if line.startswith("  ")}
     if names != {"file", "pipe"}:

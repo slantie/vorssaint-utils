@@ -29,6 +29,35 @@ enum PDFWorkspaceModelTests {
                 suite.expect(document.write(to: url), "Workspace fixture writes distinct document metadata")
             }
             let originalA = try Data(contentsOf: a), originalB = try Data(contentsOf: b)
+            let history = try PDFWorkspaceModel(inputs: [a], tool: .organize, featureAvailable: { true })
+            let originalPlan = history.plan
+            history.plan.rotate(history.plan.pages[0].id); let rotatedPlan = history.plan
+            history.undo()
+            suite.expect(history.plan == originalPlan && history.canRedo, "PDF undo restores the page rotation and identity")
+            history.redo()
+            suite.expect(history.plan == rotatedPlan, "PDF redo restores the exact edited plan")
+            try history.append([b]); history.undo()
+            suite.expect(history.inputs == [a] && history.plan == rotatedPlan, "Undoing PDF import preserves earlier page edits")
+            history.redo()
+            suite.expect(history.inputs == [a,b] && history.plan.pages.count == 5, "Redoing PDF import restores document and page order together")
+            history.removeDocument(0); history.undo()
+            suite.expect(history.inputs == [a,b] && history.plan.pages.count == 5 && history.metadata.title == "First title",
+                         "PDF undo restores removed documents together with their own metadata")
+            let ranges = try PDFWorkspaceModel(inputs: [a,b], tool: .split, featureAvailable: { true })
+            ranges.splitRangeText = "1-2,3-5"
+            suite.expect(try PDFTools.splitGroups(ranges.splitRangeText, pageCount: 5) == [[0,1],[2,3,4]], "PDF split ranges parse inclusive one-based page groups")
+            suite.expect((try? PDFTools.splitGroups("3-1", pageCount: 5)) == nil && (try? PDFTools.splitGroups("1-6", pageCount: 5)) == nil,
+                         "PDF split ranges reject reversed and out-of-document bounds")
+            var splitOutputs: [URL] = []
+            let splitter = try PDFWorkspaceModel(inputs: [a,b], tool: .split, featureAvailable: { true }, publishOutputs: { splitOutputs = $0 })
+            splitter.splitRangeText = "1-2,3-5"; splitter.save()
+            suite.expect(finish(splitter) && splitOutputs.count == 1, "PDF range split saves through the asynchronous workspace")
+            if let folder = splitOutputs.first {
+                let first = try PDFTools.document(folder.appendingPathComponent("Part 0001.pdf")), second = try PDFTools.document(folder.appendingPathComponent("Part 0002.pdf"))
+                suite.expect(first.pageCount == 2 && second.pageCount == 3 && first.page(at: 0)?.string?.contains("ALPHA") == true
+                             && second.page(at: 0)?.string?.contains("GAMMA") == true && second.page(at: 2)?.string?.contains("EPSILON") == true,
+                             "PDF page-range output preserves page contents and group order")
+            }
             var outputs: [URL] = []
             let model = try PDFWorkspaceModel(inputs: [a], tool: .organize, featureAvailable: { true }, publishOutputs: { outputs = $0 })
             let alpha = model.plan.pages[0].id, gamma = model.plan.pages[2].id

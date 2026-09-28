@@ -1,0 +1,5 @@
+module SystemArchive [system] {
+    header "shim.h"
+    link "archive.2"
+    export *
+}

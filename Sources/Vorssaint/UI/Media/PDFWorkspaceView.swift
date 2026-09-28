@@ -8,7 +8,7 @@ import UniformTypeIdentifiers
 
 final class PDFToolController: NSObject, NSWindowDelegate {
     static let shared = PDFToolController()
-    private var window: PDFToolPanel?
+    private var window: FileToolPanel?
     private var model: PDFWorkspaceModel?
 
     func chooseInputs(tool: PDFTool) {
@@ -35,7 +35,7 @@ final class PDFToolController: NSObject, NSWindowDelegate {
                 })
             model?.cancel()
             model = next
-            let window = self.window ?? PDFToolPanel(contentRect: .zero,
+            let window = self.window ?? FileToolPanel(contentRect: .zero,
                 styleMask: [.borderless, .nonactivatingPanel, .resizable], backing: .buffered, defer: false)
             window.title = PDFToolStrings.localized(L10n.shared.language).label(tool)
             window.isReleasedWhenClosed = false
@@ -94,7 +94,7 @@ final class PDFToolController: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) { model?.cancel() }
 }
 
-private final class PDFToolPanel: OverlayPanel {
+final class FileToolPanel: OverlayPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
     override func cancelOperation(_ sender: Any?) { close() }
@@ -106,7 +106,7 @@ enum FileToolAppearance {
     static let card = Color(white: 0.115)
 }
 
-private struct PDFPanelDragHandle: NSViewRepresentable {
+struct FileToolPanelDragHandle: NSViewRepresentable {
     func makeNSView(context: Context) -> Handle { Handle() }
     func updateNSView(_ view: Handle, context: Context) {}
     final class Handle: NSView {
@@ -124,7 +124,7 @@ private struct PDFWorkspaceView: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
-                PDFPanelDragHandle()
+                FileToolPanelDragHandle()
                 Text(strings.label(model.tool)).font(.system(size: 22, weight: .semibold)).allowsHitTesting(false)
                 HStack {
                     Button(action: close) { Image(systemName: "xmark").font(.system(size: 14, weight: .semibold)).frame(width: 32, height: 32) }
@@ -139,6 +139,8 @@ private struct PDFWorkspaceView: View {
                 Text(model.tool == .merge ? strings[.documentOrder] : String(format: strings[.pages], model.plan.pages.count)).foregroundStyle(.secondary)
                 Spacer()
                 if model.tool != .readQR {
+                    Button(ImageFileToolStrings.localized(l10n.language)[.undo]) { model.undo() }.disabled(!model.canUndo).keyboardShortcut("z", modifiers: .command)
+                    Button(ImageFileToolStrings.localized(l10n.language)[.redo]) { model.redo() }.disabled(!model.canRedo).keyboardShortcut("z", modifiers: [.command, .shift])
                     Button(strings[.add]) { PDFToolController.shared.addInputs(to: model) }.disabled(model.requiresSingleDocument)
                     if model.tool == .merge { Button(strings[.sortName]) { model.sortDocuments() }.controlSize(.small) }
                     else { Button(strings[.reset]) { model.reset() }.controlSize(.small) }
@@ -168,6 +170,11 @@ private struct PDFWorkspaceView: View {
                         }
                     }.padding(16)
                 }
+            }
+            if model.tool == .split {
+                TextField(strings[.splitRanges], text: $model.splitRangeText).textFieldStyle(.roundedBorder).padding(.horizontal, 18)
+                    .accessibilityLabel(strings[.splitRanges]).disabled(model.busy || !model.isAvailable)
+                Text(strings[.splitRangeHint]).font(.caption).foregroundStyle(.secondary).padding(.horizontal, 18).padding(.bottom, 12)
             }
             if model.tool == .organize {
                 VStack(alignment: .leading, spacing: 6) {

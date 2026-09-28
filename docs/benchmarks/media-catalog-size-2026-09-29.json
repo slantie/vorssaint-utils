@@ -1,0 +1,307 @@
+{
+  "date": "2026-09-29",
+  "scope": "Local catalog expansion; not published; limited UI verification, see checklist",
+  "baseline": "Historical optimized baseline 9be00fbc, same bundle file / ZIP level 6 accounting",
+  "sizes": {
+    "baseline": {
+      "bundle_file_bytes": 75282630,
+      "zip_bytes": 24091916
+    },
+    "local_expansion": {
+      "bundle_file_bytes": 113624208,
+      "zip_bytes": 40235820
+    },
+    "private_runtime": {
+      "bundle_file_bytes": 34922325,
+      "zip_bytes": 15355141
+    }
+  },
+  "engine_manifest": {
+    "schema": 1,
+    "target": "arm64-apple-macos14",
+    "packages": [
+      {
+        "name": "thorvg",
+        "version": "1.1.2",
+        "source_url": "https://github.com/thorvg/thorvg/archive/refs/tags/v1.1.2.tar.gz",
+        "source_identity": "cd466f4abf2522a6dcdc1a69a75d04a214b7163c89731fb8481eceaa6cb73842",
+        "archive": "thorvg-1.1.2.tar.gz",
+        "sha256": "cd466f4abf2522a6dcdc1a69a75d04a214b7163c89731fb8481eceaa6cb73842",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/build-tools/bin/meson",
+          "setup",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/objects/thorvg-1.1.2",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/thorvg-1.1.2",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--buildtype=release",
+          "--default-library=static",
+          "-Dstatic=true",
+          "-Dengines=cpu",
+          "-Dloaders=svg,png,jpg,ttf,otf",
+          "-Dsavers=",
+          "-Dtools=",
+          "-Dfile=false",
+          "-Dextra=",
+          "-Dsimd=true",
+          "-Dstrip=false"
+        ]
+      },
+      {
+        "name": "lame",
+        "version": "4.0",
+        "source_url": "https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz",
+        "source_identity": "3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb",
+        "archive": "lame-4.0.tar.gz",
+        "sha256": "3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/lame-4.0/configure",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--enable-shared",
+          "--disable-static",
+          "--disable-frontend",
+          "--disable-decoder"
+        ]
+      },
+      {
+        "name": "opus",
+        "version": "1.6.1",
+        "source_url": "https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.6.1.tar.gz",
+        "source_identity": "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1",
+        "archive": "opus-1.6.1.tar.gz",
+        "sha256": "6ffcb593207be92584df15b32466ed64bbec99109f007c82205f0194572411a1",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/opus-1.6.1/configure",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--enable-shared",
+          "--disable-static",
+          "--disable-doc",
+          "--disable-extra-programs"
+        ]
+      },
+      {
+        "name": "libvpx",
+        "version": "1.17.0",
+        "source_url": "https://github.com/webmproject/libvpx/archive/refs/tags/v1.17.0.tar.gz",
+        "source_identity": "1020f184046187baa2985dbde38e0691f49c44088bca7a1842b0236c6081dc0a",
+        "archive": "libvpx-1.17.0.tar.gz",
+        "sha256": "1020f184046187baa2985dbde38e0691f49c44088bca7a1842b0236c6081dc0a",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/libvpx-1.17.0/configure",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--target=arm64-darwin23-gcc",
+          "--enable-shared",
+          "--disable-static",
+          "--enable-pic",
+          "--enable-vp9-highbitdepth",
+          "--disable-examples",
+          "--disable-tools",
+          "--disable-unit-tests",
+          "--disable-docs"
+        ]
+      },
+      {
+        "name": "webp",
+        "version": "1.6.0",
+        "source_url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.6.0.tar.gz",
+        "source_identity": "e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564",
+        "archive": "webp-1.6.0.tar.gz",
+        "sha256": "e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564",
+        "configure": [
+          "cmake",
+          "-S",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/webp-1.6.0",
+          "-B",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/objects/webp-1.6.0",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_INSTALL_PREFIX=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0",
+          "-DCMAKE_OSX_ARCHITECTURES=arm64",
+          "-DCMAKE_OSX_SYSROOT=/Applications/Xcode-27RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DWEBP_BUILD_ANIM_UTILS=OFF",
+          "-DWEBP_BUILD_CWEBP=OFF",
+          "-DWEBP_BUILD_DWEBP=OFF",
+          "-DWEBP_BUILD_GIF2WEBP=OFF",
+          "-DWEBP_BUILD_IMG2WEBP=OFF",
+          "-DWEBP_BUILD_VWEBP=OFF",
+          "-DWEBP_BUILD_WEBPINFO=OFF",
+          "-DWEBP_BUILD_WEBPMUX=OFF",
+          "-DWEBP_BUILD_EXTRAS=OFF"
+        ]
+      },
+      {
+        "name": "aom",
+        "version": "3.15.1",
+        "source_url": "https://aomedia.googlesource.com/aom.git",
+        "source_identity": "44d0a57786f432d933ff64b653347c66f4d0fa1d",
+        "archive": "aom-3.15.1.tar.gz",
+        "sha256": "dc0e5c1e2fabc7756fda36443936f0ca99e96e5d9ba413f992f660fd035e7c2d",
+        "configure": [
+          "cmake",
+          "-S",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/aom-3.15.1",
+          "-B",
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/objects/aom-3.15.1",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_INSTALL_PREFIX=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0",
+          "-DCMAKE_OSX_ARCHITECTURES=arm64",
+          "-DCMAKE_OSX_SYSROOT=/Applications/Xcode-27RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DENABLE_DOCS=OFF",
+          "-DENABLE_EXAMPLES=OFF",
+          "-DENABLE_TESTS=OFF",
+          "-DENABLE_TESTDATA=OFF",
+          "-DENABLE_TOOLS=OFF",
+          "-DCONFIG_TUNE_VMAF=0"
+        ]
+      },
+      {
+        "name": "ffmpeg",
+        "version": "9.0.2",
+        "source_url": "https://ffmpeg.org/releases/ffmpeg-9.0.2.tar.xz",
+        "source_identity": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+        "archive": "ffmpeg-9.0.2.tar.xz",
+        "sha256": "8c3850283eb25fa026482078a04051e0be17347b09ef81a0849bec15a96e002e",
+        "configure": [
+          "/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/sources/ffmpeg-9.0.2/configure",
+          "--prefix=/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix",
+          "--arch=arm64",
+          "--target-os=darwin",
+          "--cc=clang",
+          "--cxx=clang++",
+          "--disable-autodetect",
+          "--disable-static",
+          "--enable-shared",
+          "--enable-pic",
+          "--disable-debug",
+          "--disable-doc",
+          "--disable-ffplay",
+          "--disable-network",
+          "--disable-indevs",
+          "--disable-outdevs",
+          "--disable-protocols",
+          "--enable-protocol=file,pipe",
+          "--enable-videotoolbox",
+          "--enable-audiotoolbox",
+          "--enable-libmp3lame",
+          "--enable-libopus",
+          "--enable-libvpx",
+          "--enable-libwebp",
+          "--enable-libaom",
+          "--enable-zlib",
+          "--extra-cflags=-O2 -fPIC -mmacosx-version-min=14.0 -isysroot /Applications/Xcode-27RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix/include",
+          "--extra-ldflags=-mmacosx-version-min=14.0 -L/Users/slantie/.codex/worktrees/tangerine-file-tools/Vorssaint/.build/media-engines/prefix/lib"
+        ]
+      }
+    ],
+    "files": [
+      {
+        "path": "bin/ffmpeg",
+        "bytes": 441984,
+        "sha256": "45c14c7b31a23627d840f2d5f1d0326f58596164579e2c15f5f9b87cdd3a31ab"
+      },
+      {
+        "path": "bin/ffprobe",
+        "bytes": 237184,
+        "sha256": "25c9bf42fdc4cc68413773d852f637510dcf9f53dc8079a3ae02c214d25a01d1"
+      },
+      {
+        "path": "bin/svg-renderer",
+        "bytes": 483312,
+        "sha256": "cfa87c1bf340c6567da5de3067b85efd6d88b8500eb88a1095f8ca5d1ded8c71"
+      },
+      {
+        "path": "lib/libwebp.7.2.0.dylib",
+        "bytes": 529088,
+        "sha256": "7dd92c6a6ef236b30e9c5c3734fdfc2c3f72e1b075561900957412a28a7aa497"
+      },
+      {
+        "path": "lib/libswresample.7.1.102.dylib",
+        "bytes": 121088,
+        "sha256": "683d2280411a9b8ffabf74977863b7c5e141acd716992be1281460ddfcf72fe7"
+      },
+      {
+        "path": "lib/libswscale.10.1.102.dylib",
+        "bytes": 1228688,
+        "sha256": "261df99dca505d97cecf165d645aa83d4fc5f011d8f40707df697ab8dc961050"
+      },
+      {
+        "path": "lib/libaom.3.15.1.dylib",
+        "bytes": 7206720,
+        "sha256": "cf0b2611b825a2693643d042aea38cc7ccb4f308e9726c05106983d19cbf5a74"
+      },
+      {
+        "path": "lib/libmp3lame.0.dylib",
+        "bytes": 281168,
+        "sha256": "3ebd3a7ef468cb165c1c98a4cbd90d5b34b4cecd11aa96f7ef27c5b2151cb54f"
+      },
+      {
+        "path": "lib/libavdevice.63.1.102.dylib",
+        "bytes": 53664,
+        "sha256": "b827a17e00a64fd2809882b755eb2b8d72512c74301737617aad0b6f5cb7a7a9"
+      },
+      {
+        "path": "lib/libavfilter.12.1.102.dylib",
+        "bytes": 3911152,
+        "sha256": "ae53ae5d7c7d9a372aacd449b7343fc1a6a0c63b181cebb6146c8d76fc9a562d"
+      },
+      {
+        "path": "lib/libwebpdemux.2.0.17.dylib",
+        "bytes": 53232,
+        "sha256": "da26dfc081119818121a7ed4a609853c2ec3fba6a738a7d8ef9bb8a9231b0130"
+      },
+      {
+        "path": "lib/libavformat.63.1.102.dylib",
+        "bytes": 2283104,
+        "sha256": "541443da28a02a9f0c3b5998486630c6c7ee33ac991169cf9ab7842125e44bc4"
+      },
+      {
+        "path": "lib/libwebpdecoder.3.2.0.dylib",
+        "bytes": 300768,
+        "sha256": "678ac91d92657e5f1b63ad3ae8f44f17c3e57031f49871d57e57ae343cfbcf73"
+      },
+      {
+        "path": "lib/libavutil.61.1.102.dylib",
+        "bytes": 756512,
+        "sha256": "03ada8abbeaf670190a613c67eee58062d644d09f9d946a40b46fd7ba2094d8c"
+      },
+      {
+        "path": "lib/libwebpmux.3.1.2.dylib",
+        "bytes": 89360,
+        "sha256": "2173b95fdcdebb87066b3ef3c9f5560d298d4fbebaadfd16441290b9e5968f01"
+      },
+      {
+        "path": "lib/libavcodec.63.1.102.dylib",
+        "bytes": 13322080,
+        "sha256": "5ca6b31594832a5cc2be9af6f47eb4558e0a5ba38f7c10e455a81d05f0798e65"
+      },
+      {
+        "path": "lib/libvpx.12.dylib",
+        "bytes": 2637232,
+        "sha256": "f003a4b9d41a490e629b01a830a9efeb2d2bec2d8d0c3d4f9c19f3c0d27db4ce"
+      },
+      {
+        "path": "lib/libopus.0.dylib",
+        "bytes": 488112,
+        "sha256": "826d0cef750a630d74dbfa113d3aa5cbab3b0b42b03c3d5b7332108058cea6ca"
+      },
+      {
+        "path": "lib/libsharpyuv.0.1.2.dylib",
+        "bytes": 85920,
+        "sha256": "6f24d799d42aca8a2607008980ef9b5568f7ec79b06f3b8460e6a5496c3055c5"
+      }
+    ],
+    "toolchain": "Apple clang version 21.0.0 (clang-2100.3.34.2)\nTarget: arm64-apple-darwin27.2.0\nThread model: posix\nInstalledDir: /Applications/Xcode-27RC.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "sdk": "/Applications/Xcode-27RC.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "sources_artifact": "corresponding-sources.tar.gz",
+    "svg_wrapper_sha256": "da3ab0e3265b729f264b0ca53b7bc1edab5891af276bb31b1de3d119763f5288",
+    "build_requirements_sha256": "ee901810df7548cd6af6cafc49082a107405d70784a7d544720aed3febf34efe"
+  },
+  "limitations": [
+    "Historical baseline reused, not rebuilt in this increment.",
+    "Size measurements do not establish idle CPU, memory, UI launch or Finder latency.",
+    "Expanded runtime timings have not been rebenchmarked.",
+    "Actual minimum-OS execution and Developer ID notarization are unverified."
+  ]
+}

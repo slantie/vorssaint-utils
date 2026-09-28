@@ -16,9 +16,12 @@ import platform
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 
 SOURCES = [
+    ("thorvg", "1.1.2", "https://github.com/thorvg/thorvg/archive/refs/tags/v1.1.2.tar.gz",
+     "cd466f4abf2522a6dcdc1a69a75d04a214b7163c89731fb8481eceaa6cb73842"),
     ("lame", "4.0", "https://downloads.sourceforge.net/project/lame/lame/4.0/lame-4.0.tar.gz",
      "3df5124d5ad3a98312ffd7ba6a9b36230e4f8a3e66d3ce0f425e336c32d216eb"),
     ("opus", "1.6.1", "https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.6.1.tar.gz",
@@ -66,6 +69,8 @@ def main():
                PKG_CONFIG_LIBDIR=str(prefix / "lib/pkgconfig"), PKG_CONFIG_PATH="",
                CMAKE_PREFIX_PATH=str(prefix), SOURCE_DATE_EPOCH="0")
     records = []
+    wrapper = Path(__file__).with_name("svg-renderer.cpp").resolve()
+    build_requirements = Path(__file__).with_name("media-build-requirements.txt").resolve()
     commands = []
 
     def run(argv, cwd, log):
@@ -75,6 +80,15 @@ def main():
                                      stdout=out, stderr=subprocess.STDOUT)
         if process.returncode:
             raise RuntimeError(f"Build failed: {argv[0]}; inspect {log}")
+
+    # Pinned build tools live only in the generated work directory, never in the app.
+    build_tools = work / "build-tools"
+    meson = build_tools / "bin/meson"
+    if not meson.is_file():
+        run([sys.executable, "-m", "venv", build_tools], work, work / "logs/build-tools.log")
+        run([build_tools / "bin/python", "-m", "pip", "install", "--require-hashes", "--only-binary=:all:",
+             "-r", build_requirements], work, work / "logs/build-tools.log")
+    env["PATH"] = str(build_tools / "bin") + os.pathsep + env["PATH"]
 
     for name, version, url, expected in SOURCES:
         label = f"{name}-{version}"
@@ -111,7 +125,13 @@ def main():
                  "-DCMAKE_INSTALL_PREFIX=" + str(prefix), "-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0",
                  "-DCMAKE_OSX_ARCHITECTURES=arm64", "-DCMAKE_OSX_SYSROOT=" + sdk,
                  "-DBUILD_SHARED_LIBS=ON"]
-        if name == "lame":
+        if name == "thorvg":
+            configure = [meson, "setup", objects, source, "--prefix=" + str(prefix),
+                         "--buildtype=release", "--default-library=static", "-Dstatic=true",
+                         "-Dengines=cpu", "-Dloaders=svg,png,jpg,ttf,otf", "-Dsavers=", "-Dtools=",
+                         "-Dfile=false", "-Dextra=", "-Dsimd=true", "-Dstrip=false"]
+
+        elif name == "lame":
             configure = [source / "configure", "--prefix=" + str(prefix), "--enable-shared",
                          "--disable-static", "--disable-frontend", "--disable-decoder"]
         elif name == "opus":
@@ -142,13 +162,23 @@ def main():
         # The marker includes the recipe and toolchain: changing either forces
         # reconfiguration. Sources are unmodified; all objects stay separate.
         key = hashlib.sha256(json.dumps([configure, env["CFLAGS"], env["CXXFLAGS"], env["LDFLAGS"],
-                                         capture("clang", "--version"), expected], default=str).encode()).hexdigest()
+                                         capture("clang", "--version"), expected, digest(wrapper) if name == "thorvg" else None], default=str).encode()).hexdigest()
         marker = objects / "completed-recipe.txt"
         if args.stage_only and not marker.exists():
             raise RuntimeError(f"No completed build for {label}")
         if not args.stage_only and (not marker.exists() or marker.read_text() != key):
-            run(configure, objects, log)
-            if name in ["webp", "aom"]:
+            actual_configure = configure[:]
+            if name == "thorvg" and (objects / "build.ninja").exists(): actual_configure.insert(2, "--reconfigure")
+            run(actual_configure, objects, log)
+            if name == "thorvg":
+                run([meson, "compile", "-C", objects, "-j", str(args.jobs)], objects, log)
+                run([meson, "install", "-C", objects], objects, log)
+                (prefix / "bin").mkdir(exist_ok=True)
+                run(["clang++", "-std=c++14", "-O2", "-DTVG_STATIC", "-mmacosx-version-min=14.0",
+                     "-isysroot", sdk, "-I" + str(prefix / "include/thorvg-1"), wrapper,
+                     prefix / "lib/libthorvg-1.a", "-framework", "CoreGraphics", "-framework", "ImageIO",
+                     "-framework", "CoreFoundation", "-o", prefix / "bin/svg-renderer"], objects, log)
+            elif name in ["webp", "aom"]:
                 run(["cmake", "--build", objects, "--parallel", str(args.jobs)], objects, log)
                 run(["cmake", "--install", objects], objects, log)
             else:
@@ -164,7 +194,7 @@ def main():
         shutil.rmtree(runtime)  # Only this recipe's generated staging output.
     for folder in ["bin", "lib", "notices"]:
         (runtime / folder).mkdir(parents=True)
-    for name in ["ffmpeg", "ffprobe"]:
+    for name in ["ffmpeg", "ffprobe", "svg-renderer"]:
         shutil.copy2(prefix / "bin" / name, runtime / "bin" / name)
     for library in (prefix / "lib").glob("*.dylib"):
         if not library.is_symlink():
@@ -202,26 +232,38 @@ def main():
                 target = runtime / "notices" / name / path.relative_to(source)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(path, target)
+    # These decoders carry notices inside source files, rather than separate
+    # license documents. Include their complete originals with the app notices.
+    thorvg = work / "sources/thorvg-1.1.2"
+    for relative in ["src/loaders/png/tvgLodePng.cpp", "src/loaders/png/tvgLodePng.h", "src/loaders/jpg/tvgJpgd.cpp", "src/loaders/jpg/tvgJpgd.h"]:
+        path = thorvg / relative
+        target = runtime / "notices/thorvg/embedded-decoders" / path.name
+        target.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copy2(path,target)
     manifest = {"schema": 1, "target": "arm64-apple-macos14", "packages": records,
                 "files": [{"path": str(p.relative_to(runtime)), "bytes": p.stat().st_size, "sha256": digest(p)} for p in binaries],
                 "toolchain": capture("clang", "--version"), "sdk": sdk,
-                "sources_artifact": "corresponding-sources.tar.gz"}
+                "sources_artifact": "corresponding-sources.tar.gz",
+                "svg_wrapper_sha256": digest(wrapper), "build_requirements_sha256": digest(build_requirements)}
     (runtime / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     (runtime / "notices/README.txt").write_text(
         "Media conversion uses FFmpeg (LGPL-2.1-or-later), LAME (LGPL-2.0-or-later), "
-        "Opus, libvpx, libwebp and AOM. Full notices are included in this folder.\n"
+        "Opus, libvpx, libwebp, AOM and ThorVG (MIT). Full notices are included in this folder.\n"
         "The matching corresponding-sources.tar.gz is distributed alongside the app.\n"
         "Engines run as separate local executables. No source changes were applied.\n")
     with tarfile.open(work / "corresponding-sources.tar.gz", "w:gz") as out:
         for record in records:
             out.add(work / "downloads" / record["archive"], arcname="archives/" + record["archive"])
         out.add(Path(__file__), arcname="build-media-engines.py")
+        out.add(wrapper, arcname="svg-renderer.cpp")
+        out.add(build_requirements, arcname="media-build-requirements.txt")
         out.add(runtime / "manifest.json", arcname="manifest.json")
         out.add(Path(__file__).with_name("verify-media-engines.py"), arcname="verify-media-engines.py")
         import io
         instructions = (
             "Corresponding media engine sources for Vorssaint\n\n"
-            "Prerequisites: Apple Silicon Mac, Xcode Command Line Tools, CMake, pkgconf.\n"
+            "Prerequisites: Apple Silicon Mac, Xcode Command Line Tools, Python 3, CMake, pkgconf.\n"
+            "Pinned Meson/Ninja are installed into an isolated build-only venv.\n"
             "Sources are unmodified. All archives are pinned and SHA-256 verified.\n"
             "To rebuild using these archives without fetching upstream sources:\n"
             "  mkdir -p engine-build/downloads\n"

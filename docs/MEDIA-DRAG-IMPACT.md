@@ -8,6 +8,28 @@ engine integration. The full Tangerine tool catalog
 and Shift–Option editors are still being implemented. The prototype is not a
 release build and does not establish the final size of that full feature.
 
+## Local catalog expansion, September 29
+
+This local optimized build measures **113.62 MB** of app files and a comparable
+**40.24 MB** ZIP. Against the historical baseline (**75.28 MB / 24.09 MB**), this
+adds **38.34 MB (50.93%)** to app files and **16.14 MB (67.01%)** to the ZIP.
+The baseline was reused from the previous report, not rebuilt this time.
+
+The bundle has seven source-built projects and 19 runtime binaries. ThorVG adds
+one statically linked SVG renderer; pinned Meson/Ninja are build-only tools.
+The private runtime is **34.92 MB**, including notices and signed manifest.
+Archive support uses macOS libarchive with pinned BSD headers and no extra
+bundled archive runtime. Package.swift adds a system-library target rather than
+a downloaded Swift package dependency.
+
+[Raw size evidence](benchmarks/media-catalog-size-2026-09-29.json) contains exact
+byte counts and the signed engine manifest. Expanded conversion workloads,
+GUI idle CPU/memory, UI launch and Finder latency have not been remeasured;
+the historical runtime timings below are not a finished-catalog performance claim.
+See the [coverage checklist](TANGERINE-CATALOG-CHECKLIST.md) for implemented scope,
+UI verification and remaining limitations. All new changes remain local pending
+explicit approval to push.
+
 ## Native PDF tools increment
 
 The local review fixes and reference-style floating panels now measure

@@ -24,11 +24,15 @@ toolchain, SDK, package versions and binary hashes. Changing configure arguments
 or the toolchain invalidates the corresponding build cache. Byte-for-byte
 reproducibility across different Apple toolchains is not claimed.
 
-The six projects are FFmpeg 9.0.2, LAME 4.0, Opus 1.6.1, libvpx 1.17.0,
-libwebp 1.6.0 and AOM 3.15.1. The runtime has two executables and 16 real dynamic
+The seven projects are FFmpeg 9.0.2, LAME 4.0, Opus 1.6.1, libvpx 1.17.0,
+libwebp 1.6.0, AOM 3.15.1 and ThorVG 1.1.2. The runtime has three executables and 16 real dynamic
 libraries, with relative aliases. It uses system frameworks and zlib.
 No ImageMagick, Homebrew codecs, OpenSSL, x264, x265 or network protocols are
-part of this runtime. SVG/document/archive support is separate work.
+part of this runtime. ThorVG is statically linked into the private SVG renderer,
+with file IO, animation and GPU engines disabled. The renderer reads a validated
+static SVG snapshot and writes a bounded PNG. It does not fetch external resources.
+Pinned Meson and Ninja are installed in an isolated build-only Python environment;
+they are not shipped. Document and archive tools use native/system capabilities.
 
 All sources compile with an Apple Silicon target and macOS 14 deployment flags.
 Verification checks the actual Mach-O minimum OS, architecture, signatures,
@@ -46,7 +50,7 @@ notarizes the app, and stages the matching
 included in release hash verification. These changes do not publish a release.
 
 The source artifact contains every exact upstream archive, the build recipe and
-its manifest. License, notice, author and patent texts from the sources are
+its manifest, the SVG wrapper and hashed build-tool requirements. License, notice, author and patent texts from the sources are
 included in the app's `MediaEngines/notices` folder. About settings credits the
 projects and opens the notices and corresponding sources. Developer builds open
 their local source artifact; release builds link to the matching release asset.

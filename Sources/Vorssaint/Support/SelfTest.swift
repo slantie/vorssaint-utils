@@ -14,8 +14,8 @@ enum SelfTest {
         if Bundle.main.object(forInfoDictionaryKey: "VorssaintBundledMediaEngines") as? Bool == true {
             if let engines = MediaEngineBundle.bundled {
                 do {
-                    for name in ["ffmpeg", "ffprobe"] {
-                        _ = try engines.run(name, arguments: ["-version"], batch: FileDragBatch(), timeout: 10)
+                    for name in ["ffmpeg", "ffprobe", "svg-renderer"] {
+                        _ = try engines.run(name, arguments: [name == "svg-renderer" ? "--version" : "-version"], batch: FileDragBatch(), timeout: 10)
                     }
                 } catch { failures.append("bundled media engines: \(error.localizedDescription)") }
             } else { failures.append("bundled media engines missing or invalid") }

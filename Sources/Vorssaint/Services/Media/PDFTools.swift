@@ -26,16 +26,33 @@ enum PDFTool: String, CaseIterable, Identifiable {
 enum FileDragAction: Equatable, Identifiable {
     case convert(FileDragFormat)
     case pdfTool(PDFTool)
+    case imageTool(ImageFileTool)
+    case avTool(AVFileTool)
+    case moreTools, readImageQR
+    case metadata
+    case extractArchive
     var id: String {
         switch self {
         case .convert(let format): return format.id
         case .pdfTool(let tool): return "pdf-" + tool.rawValue
+        case .imageTool(let tool): return "image-" + tool.rawValue
+        case .avTool(let tool): return "av-" + tool.rawValue
+        case .moreTools: return "more-tools"
+        case .readImageQR: return "image-qr"
+        case .metadata: return "file-metadata"
+        case .extractArchive: return "archive-extract"
         }
     }
     func title(_ language: AppLanguage) -> String {
         switch self {
         case .convert(let format): return format.title
         case .pdfTool(let tool): return PDFToolStrings.localized(language).label(tool)
+        case .imageTool(let tool): return ImageFileToolStrings.localized(language).label(tool)
+        case .avTool(let tool): return AVFileToolStrings.localized(language).label(tool)
+        case .moreTools: return FileToolExtraStrings.localized(language)[.more]
+        case .readImageQR: return PDFToolStrings.localized(language).label(.readQR)
+        case .metadata: return FileMetadataStrings.localized(language)[.title]
+        case .extractArchive: return ArchiveToolStrings.extract(language)
         }
     }
 }
@@ -51,9 +68,10 @@ struct PDFPageEdit: Identifiable, Equatable {
     }
 }
 
-struct PDFEditPlan {
+struct PDFEditPlan: Equatable {
     var pages: [PDFPageEdit]
     var normalizeWidths = false
+    var splitGroups: [[Int]]?
 
     mutating func move(_ id: UUID, to destination: Int) {
         guard let index = pages.firstIndex(where: { $0.id == id }),
@@ -73,7 +91,7 @@ struct PDFEditPlan {
     mutating func remove(_ id: UUID) { pages.removeAll { $0.id == id } }
 }
 
-struct PDFMetadata {
+struct PDFMetadata: Equatable {
     var title = ""
     var author = ""
     var subject = ""
@@ -107,6 +125,19 @@ enum PDFTools {
         }
         guard !pages.isEmpty else { throw CocoaError(.fileReadCorruptFile) }
         return PDFEditPlan(pages: pages)
+    }
+
+    static func splitGroups(_ raw: String, pageCount: Int) throws -> [[Int]]? {
+        guard !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        guard raw.utf8.count <= 10000, pageCount > 0, pageCount <= maxPages else { throw CocoaError(.fileReadTooLarge) }
+        var groups: [[Int]] = []
+        for part in raw.split(separator: ",", omittingEmptySubsequences: false) {
+            let range = part.trimmingCharacters(in: .whitespaces).split(separator: "-", omittingEmptySubsequences: false)
+            guard range.count == 1 || range.count == 2, let first = Int(range[0]), first > 0, first <= pageCount,
+                  let last = range.count == 2 ? Int(range[1]) : first, last >= first, last <= pageCount else { throw CocoaError(.validationMissingMandatoryProperty) }
+            groups.append(Array((first-1)..<last))
+        }
+        guard groups.count <= maxPages else { throw CocoaError(.fileReadTooLarge) }; return groups
     }
 
     static func metadata(_ input: URL) throws -> PDFMetadata {
@@ -143,7 +174,7 @@ enum PDFTools {
                 targetWidth = min(targetWidth ?? width, width)
             }
         }
-        for (offset, edit) in plan.pages.enumerated() {
+        for edit in plan.pages {
             try autoreleasepool {
                 guard !batch.isCancelled else { throw CancellationError() }
                 if sources[edit.source] == nil { sources[edit.source] = try document(edit.source) }
@@ -152,12 +183,18 @@ enum PDFTools {
                       (0...3).contains(edit.quarterTurns) else { throw CocoaError(.fileReadNoPermission) }
                 page.rotation = (page.rotation + edit.quarterTurns * 90) % 360
                 if let targetWidth { page = try normalizedPage(page, width: targetWidth) }
-                if tool == .split {
-                    let single = PDFDocument(); single.insert(page, at: 0)
-                    guard single.write(to: staged.appendingPathComponent(String(format: "Page %04d.pdf", locale: Locale(identifier: "en_US_POSIX"), offset + 1))) else {
-                        throw CocoaError(.fileWriteUnknown)
-                    }
-                } else { combined.insert(page, at: combined.pageCount) }
+                combined.insert(page, at: combined.pageCount)
+            }
+        }
+        if tool == .split {
+            let groups = plan.splitGroups ?? plan.pages.indices.map { [$0] }
+            guard !groups.isEmpty, groups.count <= maxPages, groups.allSatisfy({ !$0.isEmpty && $0.allSatisfy({ plan.pages.indices.contains($0) }) }) else { throw CocoaError(.fileReadCorruptFile) }
+            for (offset, group) in groups.enumerated() {
+                guard !batch.isCancelled else { throw CancellationError() }
+                let result = PDFDocument()
+                for index in group { guard let page = combined.page(at: index)?.copy() as? PDFPage else { throw CocoaError(.fileReadCorruptFile) }; result.insert(page, at: result.pageCount) }
+                let name = String(format: "%@ %04d.pdf", locale: Locale(identifier: "en_US_POSIX"), plan.splitGroups == nil ? "Page" : "Part", offset + 1)
+                guard result.write(to: staged.appendingPathComponent(name)) else { throw CocoaError(.fileWriteUnknown) }
             }
         }
         if tool != .split {

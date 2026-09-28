@@ -1,0 +1,14 @@
+▸ Building & running tests against MacOSX26.sdk…
+CoreGraphics PDF has logged an error. Set environment variable "CG_PDF_VERBOSE" to learn more.
+media: OK (474 checks, 8.03s)
+repository: OK (246 checks, 4.45s)
+localization: OK (7271 checks, 0.29s)
+TESTS OK (7991 checks)
+
+Debug and optimized builds: PASS, no compiler warnings.
+Debug selftest: SELFTEST OK.
+Optimized selftest: SELFTEST OK.
+Media runtime verification: 19 Apple Silicon binaries, macOS 14 declarations, local protocols only.
+
+Computer Use: floating image crop/undo/redo and actual 160x128 save; floating video trim and actual 1.53 second save/playback comparison. Latest selection/metadata UI not fully exercised. Finder modifier gestures and minimum macOS 14 runtime require manual verification.
+GitHub review comments reread: three by vorssaint; local fixes covered. Not pushed; threads remain open against the published head.

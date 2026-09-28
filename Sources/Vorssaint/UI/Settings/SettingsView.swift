@@ -729,7 +729,7 @@ struct AboutSettings: View {
             if let engines = MediaEngineBundle.bundled {
                 let strings = MediaEngineStrings.localized(l10n.language)
                 VStack(spacing: 5) {
-                    Text("\(strings.conversion): FFmpeg (LGPL-2.1+), LAME (LGPL-2.0+), Opus, libvpx, libwebp, AOM")
+                    Text("\(strings.conversion): FFmpeg (LGPL-2.1+), LAME (LGPL-2.0+), Opus, libvpx, libwebp, AOM, ThorVG (MIT)")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

@@ -1,0 +1,2 @@
+# Keep pinned vendor headers byte-for-byte matching upstream checksums.
+Sources/SystemArchive/include/*.h -whitespace

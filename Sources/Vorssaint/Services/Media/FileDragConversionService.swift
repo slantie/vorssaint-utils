@@ -21,15 +21,19 @@ final class FileDragConversionService: ObservableObject {
     private var watchdog: Timer?
     private var dragBaseline = 0
     private var sawMouseDown = false
-    private var batches = FileDragBatchSession()
     private var dropSession: FileDragDropSession<FileDragAction>?
-    private var toolsMode = false
+    fileprivate var toolsMode = false
     private var releaseCleanup: DispatchWorkItem?
 
     private init() {}
 
     func syncWithPreferences() {
         PDFToolController.shared.syncWithPreferences()
+        ImageFileToolController.shared.syncWithPreferences()
+        AVFileToolController.shared.syncWithPreferences()
+        FileMetadataToolController.shared.syncWithPreferences()
+        FileJobToolController.shared.syncWithPreferences()
+        FileToolCatalogController.shared.syncWithPreferences()
         let wanted = AppFeature.mediaTools.isAvailable
             && UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled)
         if wanted {
@@ -73,13 +77,12 @@ final class FileDragConversionService: ObservableObject {
         monitor = nil
         watchdog?.invalidate()
         watchdog = nil
-        batches.cancel()
         status = nil
         dismiss()
     }
 
     private func considerDrag(tools: Bool) {
-        guard !batches.isProcessing else { return }
+        guard !FileJobToolController.shared.isBusy else { return }
         let alreadyVisible = panel?.isVisible == true
         if alreadyVisible && toolsMode == tools { return }
         let pasteboard = NSPasteboard(name: .drag)
@@ -104,16 +107,32 @@ final class FileDragConversionService: ObservableObject {
             let destinationTypes = Set((CGImageDestinationCopyTypeIdentifiers() as? [String]) ?? [])
             formats = FileDragFormat.availableImageFormats(destinationTypes: destinationTypes)
             if MediaEngineBundle.bundled != nil {
-                for format in [FileDragFormat.webp, .avif] where !formats.contains(format) { formats.append(format) }
+                for format in [FileDragFormat.webp, .avif, .svg] where !formats.contains(format) { formats.append(format) }
             }
+            formats.append(.docx)
         case .video:
             formats = MediaEngineBundle.bundled == nil ? [.mp4, .mov] : [.mp4, .mov, .mkv, .webm, .avi, .wmv, .gif, .mp3]
         case .audio:
             formats = MediaEngineBundle.bundled == nil ? [.m4a, .wav, .aiff, .flac] : [.mp3, .m4a, .wav, .flac, .ogg, .opus, .aiff, .wma]
         case .document: formats = [.docx, .jpeg, .png, .txt]
+        case .text: formats = [.pdf, .jpeg, .png, .srt, .vtt]
+        case .subtitle: formats = [.srt, .vtt, .txt]
+        case .archive: formats = [.zip, .tar, .gzip, .rar]
         }
-        actions = tools && kind == .document ? PDFTool.wheelTools(inputCount: urls.count).map { .pdfTool($0) }
-            : (tools ? [] : formats.map { .convert($0) })
+        if tools {
+            switch kind {
+            case .document: actions = PDFTool.wheelTools(inputCount: urls.count).map { .pdfTool($0) }
+            case .archive: actions = [.extractArchive]
+            case .image: actions = ImageFileTool.wheelTools(inputCount: urls.count).map { .imageTool($0) }
+            case .video, .audio: actions = MediaEngineBundle.bundled == nil ? [] : AVFileTool.wheelTools(video: kind == .video, count: urls.count).map { .avTool($0) }
+            default: actions = []
+            }
+            if kind == .image || kind == .video || kind == .audio {
+                let catalog = FileToolCatalog.actions(for:urls,enginesAvailable:MediaEngineBundle.bundled != nil)
+                if catalog.isEmpty { actions = [] }
+                else { actions = Array(actions.prefix(5)); actions.append(.moreTools) }
+            }
+        } else { actions = formats.map { .convert($0) } }
         guard !actions.isEmpty else { dismiss(); return }
         toolsMode = tools
         selected = nil
@@ -226,57 +245,28 @@ final class FileDragConversionService: ObservableObject {
     fileprivate func acceptDrop() -> Bool {
         guard AppFeature.mediaTools.isAvailable,
               UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled),
-              !batches.isProcessing,
+              !FileJobToolController.shared.isBusy,
               let drop = dropSession?.takeDrop() else { return false }
         let urls = drop.inputs
         dismiss()
+        if drop.format == .moreTools { FileToolCatalogController.shared.open(inputs:urls,requiresDragEnabled:true); return true }
         if case .pdfTool(let tool) = drop.format {
             PDFToolController.shared.open(inputs: urls, tool: tool, requiresDragEnabled: true)
             return true
         }
-        guard case .convert(let format) = drop.format, let batch = batches.begin() else { return false }
-        let strings = FileDragStrings.localized(L10n.shared.language)
-        status = "\(strings.convert) · \(String(format: strings.fileCountFormat, urls.count))"
-        QuickToolHUD.show(icon: "hourglass", message: status ?? "")
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            let results = urls.map { url -> Result<URL, Error> in
-                guard !batch.isCancelled else { return .failure(CancellationError()) }
-                do { return .success(try FileDragConversionEngine.convert(url, to: format, batch: batch)) }
-                catch { return .failure(error) }
-            }
-            DispatchQueue.main.async {
-                guard let self else { return }
-                switch self.batches.finish(batch,
-                                          featureAvailable: AppFeature.mediaTools.isAvailable,
-                                          enabled: UserDefaults.standard.bool(forKey: DefaultsKey.mediaDragConvertEnabled)) {
-                case .obsolete: return
-                case .suppressed:
-                    self.status = nil
-                    return
-                case .publish: break
-                }
-                let outputs = results.compactMap { try? $0.get() }
-                let failures = results.count - outputs.count
-                let strings = FileDragStrings.localized(L10n.shared.language)
-                self.status = failures == 0
-                    ? String(format: strings.completedFormat, outputs.count)
-                    : String(format: strings.partialFormat, outputs.count, failures)
-                if let error = results.compactMap({ result -> Error? in
-                    if case .failure(let error) = result { return error }
-                    return nil
-                }).first {
-                    self.status = "\(self.status ?? "") · \(error.localizedDescription)"
-                }
-                if !outputs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(outputs) }
-                if failures == 0 {
-                    QuickToolHUD.show(icon: "checkmark.circle", message: self.status ?? "")
-                } else {
-                    QuickToolHUD.show(icon: "exclamationmark.triangle",
-                                      message: String(format: strings.failedFormat,
-                                                      failures, results.count))
-                }
-            }
+        if case .imageTool(let tool) = drop.format {
+            ImageFileToolController.shared.open(inputs: urls, tool: tool, requiresDragEnabled: true)
+            return true
         }
+        if case .avTool(let tool) = drop.format {
+            AVFileToolController.shared.open(inputs: urls, tool: tool, requiresDragEnabled: true)
+            return true
+        }
+        if drop.format == .metadata, let input = urls.first, urls.count == 1 {
+            FileMetadataToolController.shared.open(input: input, requiresDragEnabled: true)
+            return true
+        }
+        FileJobToolController.shared.open(inputs:urls,action:drop.format)
         return true
     }
 }
@@ -312,7 +302,7 @@ private struct FileDragConversionWheel: View {
 
     var body: some View {
         ZStack {
-            if !hasPDFTools { disc }
+            if !service.toolsMode { disc }
             ForEach(Array(service.actions.enumerated()), id: \.element.id) { index, action in
                 let position = RadialMenuGeometry.unitPosition(index: index, itemCount: service.actions.count)
                 let highlighted = service.selected == action
@@ -326,6 +316,11 @@ private struct FileDragConversionWheel: View {
                     .frame(width: 308, height: 308)
                 VStack(spacing: 5) {
                     if case .pdfTool(let tool) = action { Image(systemName: tool.icon).font(.system(size: 17, weight: .medium)) }
+                    if case .imageTool(let tool) = action { Image(systemName: tool.icon).font(.system(size: 17, weight: .medium)) }
+                    if case .avTool(let tool) = action { Image(systemName: tool.icon).font(.system(size: 17, weight: .medium)) }
+                    if action == .moreTools { Image(systemName: "ellipsis.circle").font(.system(size:17,weight:.medium)) }
+                    if action == .metadata { Image(systemName: "tag").font(.system(size: 17, weight: .medium)) }
+                    if action == .extractArchive { Image(systemName: "archivebox").font(.system(size: 17, weight: .medium)) }
                     Text(action.title(l10n.language).uppercased()).font(.system(size: 10, weight: .bold)).tracking(0.6)
                         .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.7)
                 }

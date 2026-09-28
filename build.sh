@@ -207,7 +207,7 @@ else
     SDK="$(xcrun --show-sdk-path)"
 fi
 SDK_COMPAT_FLAGS=()
-VM_STATISTICS_COMPAT_FLAGS=(-I Sources/VMStatisticsCompat)
+VM_STATISTICS_COMPAT_FLAGS=(-I Sources/VMStatisticsCompat -I Sources/SystemArchive)
 HID_EVENT_SYSTEM_FLAGS=(-I Sources/HIDEventSystem)
 if [[ "$SDK" == "$PINNED_SDK" ]]; then
     # Swift 6.4 can read the SDK 26 interfaces when given their compiler version.
@@ -259,6 +259,25 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Media/FileDragBatchSession.swift
         Sources/Vorssaint/Services/Media/PDFTools.swift
         Sources/Vorssaint/Services/Media/PDFWorkspaceModel.swift
+        Sources/Vorssaint/Services/Media/FileToolCatalog.swift
+        Sources/Vorssaint/Services/Media/ImageDocumentTools.swift
+        Sources/Vorssaint/Services/Media/ImageFileTools.swift
+        Sources/Vorssaint/Services/Media/FileArchiveTools.swift
+        Sources/Vorssaint/Services/Media/StoredRARWriter.swift
+        Sources/Vorssaint/Services/Media/TextFileTools.swift
+        Sources/Vorssaint/Services/Media/ImageWorkspaceModel.swift
+        Sources/Vorssaint/Services/Media/AVFileTools.swift
+        Sources/Vorssaint/Services/Media/AVSelectionGeometry.swift
+        Sources/Vorssaint/Services/Media/AVTimeInputs.swift
+        Sources/Vorssaint/Services/Media/AVWorkspaceModel.swift
+        Sources/Vorssaint/Core/AVFileToolStrings.swift
+        Sources/Vorssaint/Services/Media/FileMetadataTools.swift
+        Sources/Vorssaint/Services/Media/FileMetadataWorkspaceModel.swift
+        Sources/Vorssaint/Services/Media/FileJobWorkspaceModel.swift
+        Sources/Vorssaint/Core/FileMetadataStrings.swift
+        Sources/Vorssaint/Core/ImageFileToolStrings.swift
+        Sources/Vorssaint/Core/FileToolExtraStrings.swift
+        Sources/Vorssaint/Core/ArchiveToolStrings.swift
         Sources/Vorssaint/Core/PDFToolStrings.swift
         Sources/Vorssaint/Core/MediaEngineStrings.swift
         Sources/Vorssaint/Core/QuitProtectionSupport.swift
@@ -652,6 +671,7 @@ if (( MEDIA_ENGINES )); then
     /usr/libexec/PlistBuddy -c "Add :VorssaintBundledMediaEngines bool true" "$STAGE/Contents/Info.plist"
 fi
 cp CHANGELOG.md "$STAGE/Contents/Resources/CHANGELOG.md"
+cp Resources/ArchiveHeaders-LICENSE.txt "$STAGE/Contents/Resources/ArchiveHeaders-LICENSE.txt"
 for lproj in Resources/*.lproj(N); do
     cp -R "$lproj" "$STAGE/Contents/Resources/"
 done

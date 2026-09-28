@@ -8,12 +8,42 @@ import PDFKit
 final class PDFWorkspaceModel: ObservableObject {
     @Published var tool: PDFTool { didSet { refreshMetadata() } }
     @Published private(set) var inputs: [URL]
-    @Published var plan: PDFEditPlan
-    @Published var metadata: PDFMetadata
+    @Published var plan: PDFEditPlan {
+        didSet { if !historySuspended && plan != oldValue { var previous = state; previous.plan = oldValue; record(previous) } }
+    }
+    @Published var metadata: PDFMetadata {
+        didSet { if !historySuspended && metadata != oldValue { var previous = state; previous.metadata = oldValue; record(previous) } }
+    }
+    @Published private(set) var canUndo = false
+    @Published private(set) var canRedo = false
+    @Published var splitRangeText = ""
     @Published private(set) var busy = false
     @Published private(set) var message: String?
     @Published private(set) var qrResults: [String] = []
     @Published private(set) var qrScanned = false
+    private struct State {
+        var plan: PDFEditPlan
+        var metadata: PDFMetadata
+        var inputs: [URL]
+        var resetInputs: [URL]
+        var metadataSource: URL
+    }
+    private var undoStack: [State] = [], redoStack: [State] = []
+    private var historySuspended = false
+    private var state: State { State(plan: plan, metadata: metadata, inputs: inputs, resetInputs: resetInputs, metadataSource: metadataSource) }
+    private func record(_ state: State) {
+        guard !busy else { return }
+        undoStack.append(state); if undoStack.count > 60 { undoStack.removeFirst() }; redoStack.removeAll(); historyFlags()
+    }
+    private func historyFlags() { canUndo = !undoStack.isEmpty; canRedo = !redoStack.isEmpty }
+    private func grouped(_ change: () -> Void) { record(state); historySuspended = true; defer { historySuspended = false }; change() }
+    private func restore(_ state: State) {
+        historySuspended = true
+        plan = state.plan; metadata = state.metadata; inputs = state.inputs; resetInputs = state.resetInputs; metadataSource = state.metadataSource
+        historySuspended = false; message = nil; historyFlags()
+    }
+    func undo() { guard isAvailable, !busy, let previous = undoStack.popLast() else { return }; redoStack.append(state); restore(previous) }
+    func redo() { guard isAvailable, !busy, let next = redoStack.popLast() else { return }; undoStack.append(state); restore(next) }
     private var batches = FileDragBatchSession()
     private let requiresDragEnabled: Bool
     private let featureAvailable: () -> Bool
@@ -52,9 +82,11 @@ final class PDFWorkspaceModel: ObservableObject {
     }
     func reset() {
         guard isAvailable, !busy else { return }
-        inputs = resetInputs
-        orderPageGroups(originalPageOrder: true)
-        message = nil; refreshMetadata()
+        grouped {
+            inputs = resetInputs
+            orderPageGroups(originalPageOrder: true)
+            message = nil; refreshMetadata()
+        }
     }
     /// Validate the whole addition before committing state. Existing page
     /// instances keep their identifiers, order, rotations and removal history.
@@ -65,9 +97,11 @@ final class PDFWorkspaceModel: ObservableObject {
         guard !additions.isEmpty else { return }
         let added = try PDFTools.plan(additions)
         guard plan.pages.count + added.pages.count <= PDFTools.maxPages else { throw CocoaError(.fileReadTooLarge) }
-        plan.pages.append(contentsOf: added.pages)
-        inputs.append(contentsOf: additions); resetInputs.append(contentsOf: additions)
-        message = nil; refreshMetadata()
+        grouped {
+            plan.pages.append(contentsOf: added.pages)
+            inputs.append(contentsOf: additions); resetInputs.append(contentsOf: additions)
+            message = nil; refreshMetadata()
+        }
     }
     func moveDocument(_ index: Int, offset: Int) {
         guard inputs.indices.contains(index) else { return }
@@ -75,12 +109,14 @@ final class PDFWorkspaceModel: ObservableObject {
     }
     func moveDocument(_ url: URL, to index: Int) {
         guard isAvailable, !busy, let current = inputs.firstIndex(of: url), inputs.indices.contains(index) else { return }
-        inputs.remove(at: current); inputs.insert(url, at: index); orderPageGroups(); refreshMetadata()
+        grouped { inputs.remove(at: current); inputs.insert(url, at: index); orderPageGroups(); refreshMetadata() }
     }
     func sortDocuments() {
         guard isAvailable, !busy else { return }
-        inputs.sort { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
-        orderPageGroups(); refreshMetadata()
+        grouped {
+            inputs.sort { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+            orderPageGroups(); refreshMetadata()
+        }
     }
     private func orderPageGroups(originalPageOrder: Bool = false) {
         let ranks = Dictionary(uniqueKeysWithValues: inputs.enumerated().map { ($0.element, $0.offset) })
@@ -118,18 +154,26 @@ final class PDFWorkspaceModel: ObservableObject {
     }
     func removeDocument(_ index: Int) {
         guard isAvailable, !busy, inputs.indices.contains(index), inputs.count > 1 else { return }
-        let removed = inputs.remove(at: index)
-        plan.pages.removeAll { $0.source == removed }
-        resetInputs.removeAll { $0 == removed }
-        documents[removed] = nil; thumbnails = thumbnails.filter { !$0.key.hasPrefix(removed.path + "#") }
-        refreshMetadata()
+        grouped {
+            let removed = inputs.remove(at: index)
+            plan.pages.removeAll { $0.source == removed }
+            resetInputs.removeAll { $0 == removed }
+            documents[removed] = nil; thumbnails = thumbnails.filter { !$0.key.hasPrefix(removed.path + "#") }
+            refreshMetadata()
+        }
     }
     func report(_ error: Error) { message = error.localizedDescription }
     func cancel() { batches.cancel(); message = nil }
     func save() {
-        guard canSave, let batch = batches.begin() else { return }
+        guard canSave else { return }
+        var prepared = plan
+        if tool == .split {
+            do { prepared.splitGroups = try PDFTools.splitGroups(splitRangeText, pageCount: plan.pages.count) }
+            catch { report(error); return }
+        }
+        guard let batch = batches.begin() else { return }
         busy = true; message = nil
-        let snapshot = plan, tool = tool, metadata = metadata, inputs = inputs
+        let snapshot = prepared, tool = tool, metadata = metadata, inputs = inputs
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let result = Result {
                 if tool == .compress {

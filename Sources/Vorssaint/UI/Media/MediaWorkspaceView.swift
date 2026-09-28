@@ -327,6 +327,20 @@ struct MediaWorkspaceView: View {
             .disabled(!AppFeature.mediaTools.isAvailable)
             Text(PDFToolStrings.localized(l10n.language)[.dragHint])
                 .font(.caption).foregroundStyle(.secondary)
+            Menu {
+                ForEach(ImageFileTool.allCases) { tool in
+                    Button(ImageFileToolStrings.localized(l10n.language).label(tool)) { ImageFileToolController.shared.chooseInputs(tool: tool) }
+                }
+                Button(FileMetadataStrings.localized(l10n.language)[.title]) { FileMetadataToolController.shared.chooseInput() }
+            } label: { Label(ImageFileToolStrings.localized(l10n.language)[.tools], systemImage: "photo") }
+            Menu {
+                ForEach(AVFileTool.allCases) { tool in
+                    Button(AVFileToolStrings.localized(l10n.language).label(tool)) { AVFileToolController.shared.chooseInputs(tool: tool) }
+                }
+                Button(FileMetadataStrings.localized(l10n.language)[.title]) { FileMetadataToolController.shared.chooseInput() }
+            } label: { Label(AVFileToolStrings.localized(l10n.language)[.tools], systemImage: "waveform") }
+                .disabled(MediaEngineBundle.bundled == nil)
+                .disabled(!AppFeature.mediaTools.isAvailable)
             fileCard
             optionsCard
             actionRow
