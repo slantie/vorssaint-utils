@@ -132,6 +132,11 @@ enum NotchActivityTests {
             suite.expect(NotchTimerSupport.clockText(seconds) == expected,
                    "timer clocks show hours at the hour boundary while preserving seconds: \(seconds)")
         }
+        suite.expect(NotchTimerSupport.rollingValue("12:04", everySecond: false) == "12"
+               && NotchTimerSupport.rollingValue("1:02:03", everySecond: false) == "1:02"
+               && NotchTimerSupport.rollingValue("14m", everySecond: false) == "14m"
+               && NotchTimerSupport.rollingValue("12:04", everySecond: true) == "12:04",
+               "closed island clocks roll only above the seconds, open ones roll every second")
         let locale = Locale(identifier: "en_US")
         suite.expect(NotchTimerSupport.compactText(870, locale: locale) == "14m"
                && NotchTimerSupport.compactText(60, locale: locale) == "1m",
@@ -497,14 +502,24 @@ enum NotchActivityTests {
     }
 
     private static func compactTimerContracts(_ suite: TestSuite) {
-        suite.expect(NotchSupport.compactCompanions(timer: true, running: true, downloads: true, agents: true, music: true)
-                        == [.downloads, .agents, .music],
+        func companions(of primary: NotchCompactActivity, timer: Bool = true, running: Bool = true,
+                        calendar: Bool = true) -> [NotchCompactActivity] {
+            NotchSupport.compactCompanions(of: primary, timer: timer, running: running, downloads: true, agents: true,
+                                           calendar: calendar, music: true)
+        }
+        suite.expect(companions(of: .timer) == [.downloads, .agents, .calendar, .music],
                      "a running timer offers every supported pair instead of silently choosing one")
-        suite.expect(NotchSupport.compactCompanions(timer: true, running: false, downloads: true, agents: true, music: true)
-                        == [.downloads],
-                     "a paused or finished timer keeps its status mark beside music or agents")
-        suite.expect(NotchSupport.compactCompanions(timer: false, running: true, downloads: true, agents: true, music: true).isEmpty,
-                     "other activities need both wings and cannot be combined")
+        suite.expect(companions(of: .timer, running: false) == [.downloads],
+                     "a paused or finished timer keeps its status mark beside agents, an event or music")
+        suite.expect(companions(of: .timer, timer: false).isEmpty && companions(of: .calendar, calendar: false).isEmpty,
+                     "an activity that is not showing offers no pair")
+        suite.expect(companions(of: .calendar, running: false) == [.downloads, .agents, .music],
+                     "an event's clock keeps its side beside a download, agents or music, whatever the timer does")
+        suite.expect([NotchCompactActivity.downloads, .agents, .music].allSatisfy { companions(of: $0).isEmpty },
+                     "downloads, agents and music need both wings and cannot lead a pair")
+        suite.expect(NotchActivityCombination(primary: .calendar, companion: .music).title(.enUS) == "Calendar + Music"
+                     && NotchActivityCombination(primary: .timer, companion: .calendar).title(.enUS) == "Timer + Calendar",
+                     "a pair is named after the activity keeping the right of the camera first")
         let screen = CGRect(x: 0, y: 0, width: 1470, height: 956)
         for barHeight: CGFloat in [16, 22, 24, 32, 40, 64] {
             for notched in [false, true] {
@@ -718,8 +733,7 @@ enum NotchActivityTests {
                                        (0x05, 0x30, "keyboard"), (0x05, 0x02, "gamecontroller"),
                                        (0x05, 0x03, "av.remote"), (0x04, 0x06, "headphones"),
                                        (0x04, 0x01, "headphones"), (0x04, 0x05, "hifispeaker"),
-                                       (0x04, 0x08, "car"), (0x02, 0x03, "iphone"), (0x01, 0x03, "laptopcomputer"),
-                                       (0x01, 0x01, "desktopcomputer"), (0x07, 0x01, "applewatch"),
+                                       (0x04, 0x08, "car"), (0x07, 0x01, "applewatch"),
                                        (0x06, 0x20, "printer"), (0x08, 0x04, "gamecontroller"),
                                        (0x00, 0x00, "dot.radiowaves.left.and.right"),
                                        (0x1F, 0x00, "dot.radiowaves.left.and.right")] {
@@ -747,6 +761,14 @@ enum NotchActivityTests {
                "invalid telemetry cannot masquerade as a recharge")
         _ = battery.consume([device(30)])
         suite.expect(battery.consume([device(10)]).count == 1, "a new discharge after actual recharge can warn again")
+        for major in [UInt32(0x01), 0x02, 0x03] {
+            suite.expect(!NotchAccessorySupport.announcesConnection(majorClass: major),
+                         "a phone, tablet, computer or access point linking up on its own is not announced (\(major))")
+        }
+        for major in [UInt32(0x00), 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x1F] {
+            suite.expect(NotchAccessorySupport.announcesConnection(majorClass: major),
+                         "accessories and devices without a declared class announce their connection (\(major))")
+        }
         var connections = NotchAccessoryConnectionState()
         connections.establishBaseline(["AA:01"])
         suite.expect(!connections.connected("AA:01"), "initially connected accessories do not replay connection banners")
