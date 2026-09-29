@@ -29,7 +29,8 @@ final class PDFToolController: NSObject, NSWindowDelegate {
         if model?.busy == true { window?.makeKeyAndOrderFront(nil); return }
         do {
             let next = try PDFWorkspaceModel(inputs: inputs, tool: tool, requiresDragEnabled: requiresDragEnabled,
-                publishOutputs: { outputs in
+                publishOutputs: { [weak self] outputs in
+                    self?.window?.close()
                     NSWorkspace.shared.activateFileViewerSelecting(outputs)
                     QuickToolHUD.show(icon: "checkmark.circle", message: outputs.map(\.lastPathComponent).joined(separator: ", "))
                 })
