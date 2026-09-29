@@ -19,6 +19,14 @@ struct FileDragDropSession<Choice: Equatable> {
     private var prepared: Drop?
     private var consumed = false
 
+    // Keep construction available to callers on the oldest supported Swift
+    // toolchain, where private state makes the synthesized initializer private.
+    init(inputs: [URL], formats: [Choice]) {
+        self.inputs = inputs
+        self.formats = formats
+        selected = nil
+    }
+
     mutating func select(_ format: Choice?) {
         guard !mouseReleased, prepared == nil, !consumed else { return }
         selected = format.flatMap { formats.contains($0) ? $0 : nil }

@@ -15,3 +15,20 @@ The relevant local test selection passes 7,991 checks: media 474, repository 246
 and localization 7,271. Debug and optimized compilation pass without warnings; both selftests pass. Detailed catalog
 coverage and interaction limits are recorded in `TANGERINE-CATALOG-CHECKLIST.md`;
 these checks do not establish complete UI parity or minimum-OS execution.
+
+## CI compile failure
+
+Run [36452438239](https://github.com/vorssaint/vorssaint-utils/actions/runs/36452438239)
+at published commit `eb9ca171` failed in both build jobs before selftest,
+packaging or unit tests ran. Both compilers reported that
+`FileDragDropSession(inputs:formats:)` was private: the synthesized memberwise
+initializer inherited the access of the private stored state. Local Xcode 27
+accepted the earlier construction, so local builds did not expose this failure.
+
+An explicit internal `init(inputs:formats:)` now initializes the session without
+exposing its prepared/consumed state. Existing drop regression fixtures exercise
+construction, mouse-up ordering, cancellation, one-time consumption and writing a
+valid PDF beside its source. The post-fix media suite passes 474 checks; the
+optimized app build and its selftest also pass locally. CI must rerun after
+publication; Swift 6.0.3 is not installed on this Mac, so this is not a claim of a
+local run with that compiler.
