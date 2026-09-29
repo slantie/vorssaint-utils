@@ -10,8 +10,8 @@ release build and does not establish the final size of that full feature.
 
 ## Build after upstream sync, September 29
 
-After merging upstream `main` at `5b7dea44`, the optimized bundle contains
-**116.67 MB** of app files and a comparable **41.01 MB** ZIP. The private engine
+After merging upstream `main` at `b2ddae4f`, the optimized bundle contains
+**116.83 MB** of app files and a comparable **41.04 MB** ZIP. The private engine
 runtime remains **34.92 MB**. Exact counts are in
 [post-sync size evidence](benchmarks/media-synced-size-2026-09-29.json).
 A matching build of current upstream without the feature was not measured.

@@ -78,9 +78,9 @@ this follow-up.
 
 ## Verification after upstream sync
 
-Merged upstream `main` at `5b7dea44` without conflicts. The optimized build has no
+Merged upstream `main` at `b2ddae4f` without conflicts. The optimized build has no
 compiler warnings, engine verification and selftest pass, and the full suite
-passes 105,981 checks plus preference cleanup. Media 487, repository 246 and
+passes 108,255 checks plus preference cleanup. Media 487, repository 246 and
 localization 7,406 are included. Historical notch/switcher failures are resolved
 by the upstream changes. Raw results are in
 `benchmarks/media-sync-validation-2026-09-29.txt`.

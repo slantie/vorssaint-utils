@@ -1,13 +1,13 @@
 {
-  "head": "b02e7e737faf913e87651f71b33aa70664215f99",
-  "upstream_main": "5b7dea4486263a37949a7f77499de23f379906c8",
+  "head": "8be5a85fb563698754d0b9533974f0d217007c3b",
+  "upstream_main": "b2ddae4f3bad3ea13c4585e09f03b04cb4fd4b80",
   "measurement": "optimized bundle after upstream sync; no matched upstream baseline rebuilt",
   "app": {
-    "bundle_file_bytes": 116671462,
-    "zip_bytes": 41014639
+    "bundle_file_bytes": 116825730,
+    "zip_bytes": 41036704
   },
   "engines": {
     "bundle_file_bytes": 34922325,
-    "zip_bytes": 15355147
+    "zip_bytes": 15355169
   }
 }
