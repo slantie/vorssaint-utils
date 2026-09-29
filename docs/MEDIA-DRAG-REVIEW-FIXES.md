@@ -71,5 +71,7 @@ localization 7,271), including actual NSItemProvider loads, invalid mixed drops,
 undo, cancelled imports and disabled/single-document guards. The Developer
 build and selftest pass without compiler warnings. Computer Use verified two
 payloads in the installed app from the three-page dummy PDF, including a small
-rotated QR. The Finder-to-overlay gesture itself is pending user confirmation;
-provider fixtures do not substitute for that gesture.
+rotated QR. The user then confirmed that a real Finder drop added another PDF
+to the QR overlay while retaining both results. Organize-page/card drops have
+provider regression coverage but were not separately exercised manually in
+this follow-up.
