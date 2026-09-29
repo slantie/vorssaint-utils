@@ -1,0 +1,13 @@
+{
+  "head": "b02e7e737faf913e87651f71b33aa70664215f99",
+  "upstream_main": "5b7dea4486263a37949a7f77499de23f379906c8",
+  "measurement": "optimized bundle after upstream sync; no matched upstream baseline rebuilt",
+  "app": {
+    "bundle_file_bytes": 116671462,
+    "zip_bytes": 41014639
+  },
+  "engines": {
+    "bundle_file_bytes": 34922325,
+    "zip_bytes": 15355147
+  }
+}

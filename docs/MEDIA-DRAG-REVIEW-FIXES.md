@@ -2,8 +2,8 @@
 
 Local review audit, September 29, 2026. The three inline comments by `vorssaint`
 were reread from GitHub; there are no additional issue-thread comments.
-Changes remain local until approval to push. GitHub threads have not been marked
-resolved against an unpublished commit.
+The current fixes were approved for publication on September 29. The table below
+maps each review point to its implementation and regression evidence.
 
 | Review point | Fix | Regression evidence |
 | --- | --- | --- |
@@ -75,3 +75,14 @@ rotated QR. The user then confirmed that a real Finder drop added another PDF
 to the QR overlay while retaining both results. Organize-page/card drops have
 provider regression coverage but were not separately exercised manually in
 this follow-up.
+
+## Verification after upstream sync
+
+Merged upstream `main` at `5b7dea44` without conflicts. The optimized build has no
+compiler warnings, engine verification and selftest pass, and the full suite
+passes 105,981 checks plus preference cleanup. Media 487, repository 246 and
+localization 7,406 are included. Historical notch/switcher failures are resolved
+by the upstream changes. Raw results are in
+`benchmarks/media-sync-validation-2026-09-29.txt`.
+Swift 6.0.3 and DMG packaging are covered by GitHub CI after publication, not by
+this local run. The installed Developer app's UI checks preceded upstream sync.

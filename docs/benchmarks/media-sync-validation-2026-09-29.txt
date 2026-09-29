@@ -1,0 +1,59 @@
+Upstream: 5b7dea4486263a37949a7f77499de23f379906c8
+Tested merge: b02e7e737faf913e87651f71b33aa70664215f99
+Command: ./build.sh --test
+Result: exit 0
+
+harness: OK (239 checks, 0.05s)
+metrics: OK (265 checks, 0.01s)
+clipboard: OK (631 checks, 0.48s)
+pointer-input: OK (932 checks, 0.15s)
+scroll-modifier: OK (350 checks, 0.00s)
+linear-scroll: OK (16 checks, 0.00s)
+preferences: OK (104 checks, 0.04s)
+app-management: OK (314 checks, 0.10s)
+window-layout: OK (269 checks, 0.02s)
+media: OK (487 checks, 6.76s)
+mixer: OK (316 checks, 0.11s)
+audio-priority: OK (21 checks, 0.00s)
+shelf: OK (451 checks, 0.63s)
+overlays: OK (29 checks, 0.13s)
+updates: OK (873 checks, 1.18s)
+repository: OK (246 checks, 3.61s)
+screenshots: OK (767 checks, 2.94s)
+recorder: OK (640 checks, 5.82s)
+command-bar: OK (556 checks, 0.18s)
+notch: OK (64416 checks, 15.14s)
+switcher-model: OK (1677 checks, 0.15s)
+agents: OK (284 checks, 1.16s)
+features: OK (1136 checks, 0.05s)
+utilities: OK (326 checks, 0.03s)
+settings: OK (376 checks, 1.15s)
+display-restoration: OK (42 checks, 0.00s)
+software-dimming: OK (31 checks, 0.00s)
+capture: OK (113 checks, 0.02s)
+keyboard: OK (20586 checks, 0.03s)
+storage: OK (177 checks, 0.04s)
+quit-protection: OK (207 checks, 0.01s)
+scratchpad: OK (79 checks, 0.00s)
+recording: OK (211 checks, 0.46s)
+network: OK (156 checks, 1.15s)
+app-updates: OK (297 checks, 0.03s)
+localization: OK (7406 checks, 0.21s)
+cleaner: OK (45 checks, 0.01s)
+uninstaller: OK (47 checks, 0.02s)
+launcher: OK (102 checks, 0.01s)
+dock-autohide: OK (57 checks, 1.15s)
+switcher: OK (263 checks, 4.07s)
+keep-awake: OK (151 checks, 0.02s)
+wallpaper: OK (37 checks, 0.01s)
+emoji: OK (253 checks, 0.04s)
+TESTS OK (105981 checks)
+PREFERENCE CLEANUP TESTS OK
+
+Optimized build: ./build.sh, exit 0; no compiler warnings
+Engine verification: 19 Apple Silicon binaries, declared macOS 14 minimum, local protocols only
+Selftest: build/stage/Vorssaint.app/Contents/MacOS/Vorssaint --selftest
+SELFTEST OK
+
+Initial concurrent test attempt lost generated files during app-build cleanup.
+The recorded passing run was executed after the app build completed.

@@ -8,7 +8,18 @@ engine integration. The full Tangerine tool catalog
 and Shift–Option editors are still being implemented. The prototype is not a
 release build and does not establish the final size of that full feature.
 
-## Local catalog expansion, September 29
+## Build after upstream sync, September 29
+
+After merging upstream `main` at `5b7dea44`, the optimized bundle contains
+**116.67 MB** of app files and a comparable **41.01 MB** ZIP. The private engine
+runtime remains **34.92 MB**. Exact counts are in
+[post-sync size evidence](benchmarks/media-synced-size-2026-09-29.json).
+A matching build of current upstream without the feature was not measured.
+Therefore the historical feature delta below must not be applied to this synced
+bundle: it includes intervening upstream application changes. No new idle CPU,
+launch, Finder latency or complete-catalog performance claim is made.
+
+## Local catalog expansion before upstream sync, September 29
 
 This local optimized build measures **113.62 MB** of app files and a comparable
 **40.24 MB** ZIP. Against the historical baseline (**75.28 MB / 24.09 MB**), this
@@ -27,8 +38,8 @@ byte counts and the signed engine manifest. Expanded conversion workloads,
 GUI idle CPU/memory, UI launch and Finder latency have not been remeasured;
 the historical runtime timings below are not a finished-catalog performance claim.
 See the [coverage checklist](TANGERINE-CATALOG-CHECKLIST.md) for implemented scope,
-UI verification and remaining limitations. All new changes remain local pending
-explicit approval to push.
+UI verification and remaining limitations. Publication was approved on
+September 29, 2026.
 
 ## Native PDF tools increment
 
@@ -37,7 +48,7 @@ The local review fixes and reference-style floating panels now measure
 **0.74 MB / 0.17 MB** above the earlier compatible-engine build, or
 **35.18 MB / 15.33 MB** above the original baseline. No additional third-party
 dependency was introduced; PDF QR scanning reuses the existing Vision decoder.
-These changes are local and await the user's explicit approval to push.
+These measurements precede the later catalog and upstream sync updates.
 
 The optimized app with PDF conversion and the split/merge/organize/compress/
 metadata workspace measures **110.15 MB**, with a comparable **39.36 MB** ZIP.
