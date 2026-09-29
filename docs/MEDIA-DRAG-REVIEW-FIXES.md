@@ -32,3 +32,20 @@ valid PDF beside its source. The post-fix media suite passes 474 checks; the
 optimized app build and its selftest also pass locally. CI must rerun after
 publication; Swift 6.0.3 is not installed on this Mac, so this is not a claim of a
 local run with that compiler.
+
+## Close overlays after saving
+
+PDF editors close only after a successful save. Generic conversion/extraction
+jobs request dismissal only when every input row is saved, including after a
+successful retry. Image and audio/video editors close when the save callback has
+outputs and no remaining failures. Metadata editors close after writing their
+copy. Failures keep editing/retry controls visible; cancelled or unavailable
+jobs suppress success presentation. QR results and metadata inspection remain
+readable until dismissed because they do not save a file.
+
+The media suite passes 479 checks, including real TXT-to-PDF output, partial
+failure followed by retry, and cancellation/feature-disablement guards for the
+new successful-completion callback. The Developer build and selftest pass;
+the updated app is installed and running. This validates completion decisions
+and compilation; the latest window-close gestures across every tool family
+have not all been manually exercised.

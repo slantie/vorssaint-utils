@@ -11,7 +11,10 @@ final class FileJobToolController: NSObject, NSWindowDelegate {
         let available = { AppFeature.mediaTools.isAvailable && (!requiresDragEnabled || UserDefaults.standard.bool(forKey:DefaultsKey.mediaDragConvertEnabled)) }
         guard available() else { return }; if isBusy { panel?.makeKeyAndOrderFront(nil); return }
         do {
-            let next = try FileJobWorkspaceModel(inputs:inputs,action:action,available:available,publish:{ urls in NSWorkspace.shared.activateFileViewerSelecting(urls) }); model?.cancel(); model = next
+            let next = try FileJobWorkspaceModel(inputs:inputs,action:action,available:available,
+                publish:{ urls in NSWorkspace.shared.activateFileViewerSelecting(urls) },
+                didFinishSuccessfully:{ [weak self] in self?.panel?.close() })
+            model?.cancel(); model = next
             let panel = panel ?? FileToolPanel(contentRect:.zero,styleMask:[.borderless,.nonactivatingPanel,.resizable],backing:.buffered,defer:false)
             panel.title = action.title(L10n.shared.language); panel.delegate = self; panel.isReleasedWhenClosed = false; panel.isOpaque = false; panel.backgroundColor = .clear
             panel.level = .floating; panel.hasShadow = true; panel.hidesOnDeactivate = false; panel.collectionBehavior = [.moveToActiveSpace,.fullScreenAuxiliary,.ignoresCycle]; panel.contentMinSize = NSSize(width:600,height:320)

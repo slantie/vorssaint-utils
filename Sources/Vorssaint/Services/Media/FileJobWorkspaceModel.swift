@@ -22,10 +22,12 @@ final class FileJobWorkspaceModel: ObservableObject {
     private let available: () -> Bool
     private let engines: MediaEngineBundle?
     private let publish: ([URL]) -> Void
-    init(inputs: [URL],action: FileDragAction,engines: MediaEngineBundle? = .bundled,available: @escaping () -> Bool = { AppFeature.mediaTools.isAvailable },publish: @escaping ([URL]) -> Void = { _ in }) throws {
+    private let didFinishSuccessfully: () -> Void
+    init(inputs: [URL],action: FileDragAction,engines: MediaEngineBundle? = .bundled,available: @escaping () -> Bool = { AppFeature.mediaTools.isAvailable },publish: @escaping ([URL]) -> Void = { _ in },didFinishSuccessfully: @escaping () -> Void = {}) throws {
         guard !inputs.isEmpty, inputs.count <= 500 else { throw CocoaError(.fileReadTooLarge) }
         switch action { case .convert,.extractArchive: break; default: throw CocoaError(.fileReadUnsupportedScheme) }
         rows = inputs.map { FileJobRow(input:$0) }; self.action = action; self.engines = engines; self.available = available; self.publish = publish
+        self.didFinishSuccessfully = didFinishSuccessfully
     }
     var isAvailable: Bool { available() }
     var hasFailures: Bool { rows.contains { if case .failed = $0.state { return true }; return $0.state == .cancelled } }
@@ -65,7 +67,12 @@ final class FileJobWorkspaceModel: ObservableObject {
                 // Recheck ownership and availability after a partial batch, before
                 // revealing anything. Completed files remain safely on disk.
                 guard completion == .publish else { return }
-                if !saved.isEmpty { self.publish(saved) }
+                if !saved.isEmpty {
+                    if self.rows.allSatisfy({ if case .done = $0.state { return true }; return false }) {
+                        self.didFinishSuccessfully()
+                    }
+                    self.publish(saved)
+                }
             }
         }
     }

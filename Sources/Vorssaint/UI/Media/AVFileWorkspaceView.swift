@@ -19,7 +19,8 @@ final class AVFileToolController: NSObject, NSWindowDelegate {
         guard available(), let engines = MediaEngineBundle.bundled else { return }
         if model?.busy == true { panel?.makeKeyAndOrderFront(nil); return }
         do {
-            let next = try AVWorkspaceModel(inputs: inputs, tool: tool, engines: engines, available: available, publish: { urls in
+            let next = try AVWorkspaceModel(inputs: inputs, tool: tool, engines: engines, available: available, publish: { [weak self] urls in
+                if self?.model?.failures.isEmpty == true { self?.panel?.close() }
                 NSWorkspace.shared.activateFileViewerSelecting(urls)
                 QuickToolHUD.show(icon: "checkmark.circle", message: urls.map(\.lastPathComponent).joined(separator: ", "))
             })

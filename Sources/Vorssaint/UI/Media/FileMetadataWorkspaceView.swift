@@ -15,7 +15,10 @@ final class FileMetadataToolController: NSObject, NSWindowDelegate {
         let available = { AppFeature.mediaTools.isAvailable && (!requiresDragEnabled || UserDefaults.standard.bool(forKey:DefaultsKey.mediaDragConvertEnabled)) }
         guard available() else { return }; if model?.busy == true { panel?.makeKeyAndOrderFront(nil); return }
         model?.cancel()
-        let next = FileMetadataWorkspaceModel(input:input,available:available,publish: { NSWorkspace.shared.activateFileViewerSelecting($0) }); model = next
+        let next = FileMetadataWorkspaceModel(input:input,available:available,publish: { [weak self] outputs in
+            self?.panel?.close()
+            NSWorkspace.shared.activateFileViewerSelecting(outputs)
+        }); model = next
         let panel = panel ?? FileToolPanel(contentRect:.zero,styleMask:[.borderless,.nonactivatingPanel,.resizable],backing:.buffered,defer:false)
         panel.title = FileMetadataStrings.localized(L10n.shared.language)[.title]; panel.delegate = self
         panel.isReleasedWhenClosed = false; panel.isOpaque = false; panel.backgroundColor = .clear
