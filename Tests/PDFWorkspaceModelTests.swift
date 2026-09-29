@@ -3,6 +3,8 @@
 
 import Foundation
 import PDFKit
+import AppKit
+import UniformTypeIdentifiers
 
 enum PDFWorkspaceModelTests {
     private static func finish(_ model: PDFWorkspaceModel) -> Bool {
@@ -11,6 +13,15 @@ enum PDFWorkspaceModelTests {
             RunLoop.current.run(until: Date().addingTimeInterval(0.01))
         }
         return !model.busy
+    }
+
+    private static func waitFor(_ predicate: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(5)
+        while !predicate() && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.01)) }
+        return predicate()
+    }
+    private static func provider(_ url: URL) -> NSItemProvider {
+        NSItemProvider(item: url as NSURL, typeIdentifier: UTType.fileURL.identifier)
     }
 
     static func run(_ suite: TestSuite) {
@@ -29,6 +40,37 @@ enum PDFWorkspaceModelTests {
                 suite.expect(document.write(to: url), "Workspace fixture writes distinct document metadata")
             }
             let originalA = try Data(contentsOf: a), originalB = try Data(contentsOf: b)
+            let c = directory.appendingPathComponent("C.pdf")
+            try PDFToolTests.fixture(c, labels: ["ZETA"])
+            let dropped = try PDFWorkspaceModel(inputs: [a], tool: .organize, featureAvailable: { true })
+            dropped.plan.rotate(dropped.plan.pages[1].id)
+            dropped.plan.remove(dropped.plan.pages[0].id)
+            let beforeDrop = dropped.plan.pages
+            suite.expect(dropped.importDroppedPDFs([provider(c), provider(b)])
+                         && waitFor { dropped.inputs.count == 3 }, "Finder file URL providers import PDFs into an open workspace")
+            suite.expect(dropped.inputs == [a,c,b] && Array(dropped.plan.pages.prefix(2)) == beforeDrop
+                         && dropped.plan.pages.suffix(3).map(\.source) == [c,b,b],
+                         "PDF drops preserve existing page edits and append new files in provider order")
+            dropped.undo()
+            suite.expect(dropped.inputs == [a] && dropped.plan.pages == beforeDrop,
+                         "A dropped batch can be undone without losing earlier edits")
+            let invalidDrop = directory.appendingPathComponent("Not a PDF.pdf")
+            try Data("invalid".utf8).write(to: invalidDrop)
+            suite.expect(dropped.importDroppedPDFs([provider(b), provider(invalidDrop)])
+                         && waitFor { dropped.message != nil } && dropped.inputs == [a] && dropped.plan.pages == beforeDrop,
+                         "A mixed valid/invalid PDF drop is rejected atomically")
+            let delayed = NSItemProvider()
+            delayed.registerDataRepresentation(forTypeIdentifier: UTType.fileURL.identifier, visibility: .all) { completion in
+                DispatchQueue.global().asyncAfter(deadline: .now() + 0.05) { completion(b.dataRepresentation, nil) }
+                return nil
+            }
+            suite.expect(dropped.importDroppedPDFs([delayed]), "A pending Finder drop can begin while the workspace is idle")
+            dropped.cancel()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            suite.expect(dropped.inputs == [a] && dropped.plan.pages == beforeDrop,
+                         "Closing a workspace suppresses a delayed Finder import")
+            let single = try PDFWorkspaceModel(inputs: [a], tool: .metadata, featureAvailable: { true })
+            suite.expect(!single.importDroppedPDFs([provider(b)]), "Single-document metadata does not accept additional PDF drops")
             let history = try PDFWorkspaceModel(inputs: [a], tool: .organize, featureAvailable: { true })
             let originalPlan = history.plan
             history.plan.rotate(history.plan.pages[0].id); let rotatedPlan = history.plan
@@ -155,6 +197,7 @@ enum PDFWorkspaceModelTests {
                          "Feature changes suppress workspace publication while a completion is queued")
             suite.expect((try? disabled.append([b])) == nil && disabled.inputs == [a],
                          "Disabled workspaces reject imported files without changing state")
+            suite.expect(!disabled.importDroppedPDFs([provider(b)]), "Disabled workspaces reject Finder drop providers")
             let afterA = try Data(contentsOf: a), afterB = try Data(contentsOf: b)
             suite.expect(afterA == originalA && afterB == originalB, "Workspace transitions and exports preserve both original PDFs")
         } catch { suite.expect(false, "PDF workspace review fixtures complete: \(error)") }

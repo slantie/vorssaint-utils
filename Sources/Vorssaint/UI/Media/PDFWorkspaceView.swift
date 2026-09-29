@@ -59,7 +59,8 @@ final class PDFToolController: NSObject, NSWindowDelegate {
             case .organize: preferred = CGSize(width: 760, height: 810)
             case .split: preferred = CGSize(width: 700, height: 700)
             case .compress: preferred = CGSize(width: 580, height: 420)
-            case .metadata, .readQR: preferred = CGSize(width: 580, height: 470)
+            case .metadata: preferred = CGSize(width: 580, height: 470)
+            case .readQR: preferred = CGSize(width: 580, height: 360)
             }
             let pointer = NSEvent.mouseLocation
             let visible = (NSScreen.screens.first { $0.frame.contains(pointer) } ?? NSScreen.main)?.visibleFrame
@@ -120,6 +121,7 @@ private struct PDFWorkspaceView: View {
     @ObservedObject var model: PDFWorkspaceModel
     var close: () -> Void
     @ObservedObject private var l10n = L10n.shared
+    @State private var dropTargeted = false
     private var strings: PDFToolStrings { .localized(l10n.language) }
 
     var body: some View {
@@ -131,13 +133,15 @@ private struct PDFWorkspaceView: View {
                     Button(action: close) { Image(systemName: "xmark").font(.system(size: 14, weight: .semibold)).frame(width: 32, height: 32) }
                         .buttonStyle(.plain).background(Color.white.opacity(0.06), in: Circle())
                         .overlay(Circle().strokeBorder(FileToolAppearance.accent.opacity(0.6), lineWidth: 2))
-                        .accessibilityLabel(strings[.cancel]).keyboardShortcut(.cancelAction)
+                        .accessibilityLabel(strings[.close]).keyboardShortcut(.cancelAction)
                     Spacer()
                 }.padding(.horizontal, 18)
             }.frame(height: 64)
             Divider()
             HStack {
-                Text(model.tool == .merge ? strings[.documentOrder] : String(format: strings[.pages], model.plan.pages.count)).foregroundStyle(.secondary)
+                Text(model.tool == .readQR ? model.inputs.map(\.lastPathComponent).joined(separator: ", ")
+                     : model.tool == .merge ? strings[.documentOrder] : String(format: strings[.pages], model.plan.pages.count))
+                    .lineLimit(2).foregroundStyle(.secondary)
                 Spacer()
                 if model.tool != .readQR {
                     Button(ImageFileToolStrings.localized(l10n.language)[.undo]) { model.undo() }.disabled(!model.canUndo).keyboardShortcut("z", modifiers: .command)
@@ -147,12 +151,23 @@ private struct PDFWorkspaceView: View {
                     else { Button(strings[.reset]) { model.reset() }.controlSize(.small) }
                 }
             }.padding(12).disabled(model.busy || !model.isAvailable)
+            if !model.requiresSingleDocument {
+                Text(strings[.dropPDFs]).font(.caption).foregroundStyle(dropTargeted ? FileToolAppearance.accent : .secondary)
+                    .padding(.horizontal, 18).padding(.bottom, 8)
+            }
             if model.tool == .merge || model.tool == .compress || (model.requiresSingleDocument && model.inputs.count > 1) {
                 documentList
             } else if model.tool == .readQR {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        if model.qrScanned && model.qrResults.isEmpty && model.message == nil { Text(strings[.noQR]).foregroundStyle(.secondary) }
+                        if model.busy { ProgressView(strings[.scanningQR]).frame(maxWidth: .infinity).padding(20) }
+                        else if let message = model.message { Text(message).foregroundStyle(.red).textSelection(.enabled) }
+                        else if model.qrScanned && model.qrResults.isEmpty {
+                            VStack(spacing: 10) {
+                                Image(systemName: "qrcode.viewfinder").font(.system(size: 32))
+                                Text(strings[.noQR])
+                            }.foregroundStyle(.secondary).frame(maxWidth: .infinity).padding(20)
+                        }
                         ForEach(model.qrResults, id: \.self) { payload in
                             HStack {
                                 Text(payload).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
@@ -193,13 +208,14 @@ private struct PDFWorkspaceView: View {
             }
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(strings[.originals]).font(.caption).foregroundStyle(.secondary)
-                    if let message = model.message { Text(message).font(.caption).textSelection(.enabled) }
+                    Text(strings[model.tool == .readQR ? .qrHint : .originals]).font(.caption).foregroundStyle(.secondary)
+                    if model.tool != .readQR, let message = model.message { Text(message).font(.caption).textSelection(.enabled) }
                 }
                 Spacer()
                 if model.busy { ProgressView().controlSize(.small) }
                 if model.tool == .readQR {
-                    Button(strings[.cancel], action: close).buttonStyle(.borderedProminent).tint(FileToolAppearance.accent)
+                    Button(strings[.scanAgain]) { model.scanQR() }.disabled(model.busy || !model.isAvailable)
+                    Button(strings[.close], action: close).buttonStyle(.borderedProminent).tint(FileToolAppearance.accent)
                 } else {
                 Button(model.tool == .organize ? strings[.saveOrganized] : strings.label(model.tool)) { model.save() }
                     .buttonStyle(.borderedProminent).tint(FileToolAppearance.accent)
@@ -209,7 +225,8 @@ private struct PDFWorkspaceView: View {
         }
         .background(FileToolAppearance.base)
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(PanelSurface.border(for: .dark), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(dropTargeted ? FileToolAppearance.accent : PanelSurface.border(for: .dark), lineWidth: dropTargeted ? 2 : 1))
+        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { model.importDroppedPDFs($0) }
         .preferredColorScheme(.dark)
     }
 
@@ -228,7 +245,10 @@ private struct PDFWorkspaceView: View {
                         Image(systemName: "line.3.horizontal").foregroundStyle(.secondary).accessibilityHidden(true)
                     }.padding(14).background(FileToolAppearance.card, in: RoundedRectangle(cornerRadius: 18))
                     .onDrag { NSItemProvider(object: url.absoluteString as NSString) }
-                    .onDrop(of: [.text], isTargeted: nil) { providers in
+                    .onDrop(of: [.fileURL, .text], isTargeted: nil) { providers in
+                        if providers.contains(where: { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }) {
+                            return model.importDroppedPDFs(providers)
+                        }
                         guard !model.busy, let provider = providers.first else { return false }
                         _ = provider.loadObject(ofClass: NSString.self) { object, _ in
                             guard let text = object as? String, let source = URL(string: text) else { return }
@@ -280,7 +300,10 @@ private struct PDFWorkspaceView: View {
         .help(page.source.lastPathComponent)
         .disabled(model.busy || !model.isAvailable)
         .onDrag { NSItemProvider(object: page.id.uuidString as NSString) }
-        .onDrop(of: [.text], isTargeted: nil) { providers in
+        .onDrop(of: [.fileURL, .text], isTargeted: nil) { providers in
+            if providers.contains(where: { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }) {
+                return model.importDroppedPDFs(providers)
+            }
             guard !model.busy, let provider = providers.first else { return false }
             _ = provider.loadObject(ofClass: NSString.self) { object, _ in
                 guard let text = object as? String, let id = UUID(uuidString: text) else { return }

@@ -14,10 +14,20 @@ enum BarcodeDetector {
     static let symbologies: [VNBarcodeSymbology] = [.qr, .microQR, .aztec, .dataMatrix, .pdf417]
 
     static func decode(_ image: CGImage) -> [QuickToolsSupport.DecodedBarcode] {
+        (try? detect(image, symbologies: symbologies)) ?? []
+    }
+
+    /// File scanners must distinguish a failed Vision request from an empty
+    /// result, and only report QR codes for the Read QR action.
+    static func decodeQR(_ image: CGImage) throws -> [QuickToolsSupport.DecodedBarcode] {
+        try detect(image, symbologies: [.qr, .microQR])
+    }
+
+    private static func detect(_ image: CGImage, symbologies: [VNBarcodeSymbology]) throws -> [QuickToolsSupport.DecodedBarcode] {
         let request = VNDetectBarcodesRequest()
         request.symbologies = symbologies
         let handler = VNImageRequestHandler(cgImage: image, options: [:])
-        try? handler.perform([request])
+        try handler.perform([request])
         return (request.results ?? []).compactMap { observation in
             guard let payload = observation.payloadStringValue, !payload.isEmpty else { return nil }
             let box = observation.boundingBox

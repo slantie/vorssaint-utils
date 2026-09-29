@@ -4,6 +4,7 @@
 import AppKit
 import Combine
 import PDFKit
+import UniformTypeIdentifiers
 
 final class PDFWorkspaceModel: ObservableObject {
     @Published var tool: PDFTool { didSet { refreshMetadata() } }
@@ -53,6 +54,7 @@ final class PDFWorkspaceModel: ObservableObject {
     private var resetInputs: [URL]
     private var thumbnails: [String: NSImage] = [:]
     private var documents: [URL: PDFDocument] = [:]
+    private var dropImportVersion = 0
 
     init(inputs: [URL], tool: PDFTool, requiresDragEnabled: Bool = false,
          featureAvailable: @escaping () -> Bool = { AppFeature.mediaTools.isAvailable },
@@ -102,6 +104,40 @@ final class PDFWorkspaceModel: ObservableObject {
             inputs.append(contentsOf: additions); resetInputs.append(contentsOf: additions)
             message = nil; refreshMetadata()
         }
+    }
+
+    /// Load Finder file URLs together before appending so one invalid file
+    /// cannot partially alter the plan, and provider order stays intact.
+    func importDroppedPDFs(_ providers: [NSItemProvider]) -> Bool {
+        guard isAvailable, !busy, !requiresSingleDocument, !providers.isEmpty,
+              providers.count <= PDFTools.maxPages,
+              providers.allSatisfy({ $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }) else { return false }
+        let version = dropImportVersion
+        let group = DispatchGroup(), lock = NSLock()
+        var loaded: [(offset: Int, url: URL)] = []
+        for (offset, provider) in providers.enumerated() {
+            group.enter()
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                let url: URL?
+                if let value = item as? URL { url = value }
+                else if let data = item as? Data { url = URL(dataRepresentation: data, relativeTo: nil) }
+                else if let value = item as? String { url = URL(string: value) }
+                else { url = nil }
+                if let url, url.isFileURL {
+                    lock.lock(); loaded.append((offset, url)); lock.unlock()
+                }
+                group.leave()
+            }
+        }
+        group.notify(queue: .main) { [weak self] in
+            guard let self, self.dropImportVersion == version, self.isAvailable, !self.busy else { return }
+            do {
+                guard loaded.count == providers.count else { throw CocoaError(.fileReadUnsupportedScheme) }
+                try self.append(MediaSupport.urlsInProviderOrder(loaded))
+                if self.tool == .readQR { self.scanQR() }
+            } catch { self.report(error) }
+        }
+        return true
     }
     func moveDocument(_ index: Int, offset: Int) {
         guard inputs.indices.contains(index) else { return }
@@ -163,7 +199,7 @@ final class PDFWorkspaceModel: ObservableObject {
         }
     }
     func report(_ error: Error) { message = error.localizedDescription }
-    func cancel() { batches.cancel(); message = nil }
+    func cancel() { dropImportVersion += 1; batches.cancel(); message = nil }
     func save() {
         guard canSave else { return }
         var prepared = plan

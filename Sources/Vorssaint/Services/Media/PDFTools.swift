@@ -280,7 +280,7 @@ enum PDFTools {
                 try autoreleasepool {
                     guard !batch.isCancelled else { throw CancellationError() }
                     guard let page = source.page(at: index) else { throw CocoaError(.fileReadCorruptFile) }
-                    let codes = BarcodeDetector.decode(try renderImage(page))
+                    let codes = try BarcodeDetector.decodeQR(renderImage(page))
                     for code in codes where !results.contains(code.payload) { results.append(code.payload) }
                 }
             }

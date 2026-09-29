@@ -49,3 +49,27 @@ new successful-completion callback. The Developer build and selftest pass;
 the updated app is installed and running. This validates completion decisions
 and compilation; the latest window-close gestures across every tool family
 have not all been manually exercised.
+
+## PDF drops and QR presentation
+
+The user confirmed the earlier empty scan was a PDF without a QR code. The QR
+panel now shows its source filenames, scanning/error/empty/result states,
+Scan again and Close controls, and a local-scanning footer instead of save-copy
+text. QR file scanning propagates Vision failures instead of reporting them as
+an empty scan and restricts this action to QR/micro-QR symbologies. Screen
+barcode reading retains its existing matrix-code behavior.
+
+Finder file-URL drops append PDFs through the existing workspace plan. Whole
+batches validate before import, provider order is preserved, current page edits
+remain intact, undo restores the previous plan, and delayed imports are ignored
+after closing. Drops on page/document cards route to file import while their
+internal text drags continue to reorder. Single-document metadata rejects
+additional PDFs. Adding files to the QR overlay rescans the current input set.
+
+The local media and localization selection passes 7,758 checks (media 487,
+localization 7,271), including actual NSItemProvider loads, invalid mixed drops,
+undo, cancelled imports and disabled/single-document guards. The Developer
+build and selftest pass without compiler warnings. Computer Use verified two
+payloads in the installed app from the three-page dummy PDF, including a small
+rotated QR. The Finder-to-overlay gesture itself is pending user confirmation;
+provider fixtures do not substitute for that gesture.

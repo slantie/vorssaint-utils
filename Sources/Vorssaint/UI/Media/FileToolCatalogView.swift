@@ -83,7 +83,7 @@ private final class ImageQRWorkspaceModel: ObservableObject {
                 try ImageFileTools.validate(inputs); var payloads: [String] = []
                 for input in inputs { try autoreleasepool {
                     guard !batch.isCancelled else { throw CancellationError() }
-                    for code in BarcodeDetector.decode(try ImageFileTools.load(input)) where !payloads.contains(code.payload) { payloads.append(code.payload) }
+                    for code in try BarcodeDetector.decodeQR(ImageFileTools.load(input)) where !payloads.contains(code.payload) { payloads.append(code.payload) }
                 } }
                 return payloads
             }
