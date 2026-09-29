@@ -179,6 +179,7 @@ struct NotchView: View {
             case .agents: NotchCapsuleAgentStrip(service: service, size: size)
             case .calendar: NotchCapsuleCalendarStrip(service: service, size: size)
             case .music: NotchCapsuleMusicStrip(service: service, size: size)
+            case .keepAwake: NotchCapsuleKeepAwakeStrip(service: service, size: size)
             }
         } else {
             switch activity {
@@ -187,6 +188,7 @@ struct NotchView: View {
             case .agents: NotchAgentStrip(service: service)
             case .calendar: NotchCalendarStrip(service: service)
             case .music: NotchMusicStrip(service: service)
+            case .keepAwake: NotchKeepAwakeStrip(service: service)
             }
         }
     }
@@ -729,7 +731,7 @@ struct NotchActivityPicker: View {
                     ForEach(combinations) { pair in
                         Button { combine(pair) } label: {
                             Label(pair.title(language),
-                                  systemImage: combination == pair ? "checkmark" : pair.companion.module.symbol)
+                                  systemImage: combination == pair ? "checkmark" : pair.companion.symbol)
                         }
                     }
                 } label: {
@@ -753,7 +755,7 @@ struct NotchActivityPicker: View {
                 let chosen = activity == selected && combination == nil
                 Button { select(activity) } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: activity.module.symbol)
+                        Image(systemName: activity.symbol)
                         Text(activity.title(language)).lineLimit(1).minimumScaleFactor(0.8)
                     }
                     .font(.system(size: 12, weight: .medium))

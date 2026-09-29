@@ -350,7 +350,7 @@ private struct NotchCapsuleCompanionMark: View {
                     NotchCapsuleCalendarStrip.clockMark(countdown, now: context.date)
                 }
             }
-        case .timer:
+        case .timer, .keepAwake:
             EmptyView()
         }
     }
@@ -520,6 +520,64 @@ struct NotchCapsuleCalendarStrip: View {
             .lineLimit(1).fixedSize()
             .foregroundStyle(ongoing ? Color.mint : Color.white)
             .modifier(NotchRollingDigits(value: remaining, countsDown: true, everySecond: false))
+    }
+}
+
+/// A running Keep Awake session: the cup of its tile, then the time it has
+/// left, or infinity for a session without an end. The reading changes once
+/// a minute, so the clock wakes only then.
+struct NotchCapsuleKeepAwakeStrip: View {
+    @ObservedObject var service: NotchService
+    let size: CGSize
+    /// Another display's capsule, when the island shows on every display.
+    var displayGeometry: NotchGeometry? = nil
+    @ObservedObject private var awake = KeepAwakeManager.shared
+    @ObservedObject private var l10n = L10n.shared
+
+    var body: some View {
+        if let end = awake.endDate {
+            TimelineView(.periodic(from: NotchKeepAwakeSupport.tickStart(until: end, now: Date()), by: 60)) { context in
+                row(end: end, now: context.date)
+            }
+        } else {
+            row(end: nil, now: Date())
+        }
+    }
+
+    private func row(end: Date?, now: Date) -> some View {
+        NotchCapsuleRow(size: size, geometry: displayGeometry ?? service.geometry) {
+            HStack(spacing: CapsuleLayout.spacing) {
+                // The cup is wider than the slot other marks share; the
+                // capsule measures it as drawn.
+                Image(systemName: NotchKeepAwakeSupport.symbol)
+                    .font(.system(size: CapsuleLayout.symbolSize, weight: .medium))
+                    .foregroundStyle(.yellow)
+                    .capsuleCentred(NotchKeepAwakeSupport.symbol)
+                if let end {
+                    let text = NotchKeepAwakeSupport.compactText(until: end, now: now,
+                                                                locale: Locale(identifier: l10n.language.rawValue))
+                    Text(text)
+                        .font(Font(CapsuleLayout.readingFont as CTFont))
+                        .foregroundStyle(.yellow)
+                        .lineLimit(1).fixedSize()
+                        // A reading that gains or loses a character, like 10m
+                        // becoming 9m, resizes the capsule; the service measures the same.
+                        .onChange(of: NotchAgentSupport.readingShape(text)) { _, _ in
+                            DispatchQueue.main.async { service.refreshPresentation() }
+                        }
+                } else {
+                    Image(systemName: NotchKeepAwakeSupport.openSymbol)
+                        .font(.system(size: CapsuleLayout.readingFont.pointSize, weight: .medium))
+                        .foregroundStyle(.yellow)
+                        .capsuleCentred(NotchKeepAwakeSupport.openSymbol, size: CapsuleLayout.readingFont.pointSize)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Strings.localized(l10n.language).keepAwakeTitle)
+        .accessibilityValue(NotchKeepAwakeStrip.status(end: end, language: l10n.language))
+        .accessibilityHint(FeatureStrings.notch(l10n.language).open)
+        .accessibilityIdentifier("notch.keepAwake")
     }
 }
 

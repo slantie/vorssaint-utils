@@ -263,6 +263,10 @@ final class NotchService: ObservableObject {
         return countdown.isShown(at: Date())
     }
 
+    var hasKeepAwakeActivity: Bool {
+        NotchKeepAwakeSupport.showsActivity() && KeepAwakeManager.shared.isActive
+    }
+
     var compactActivity: NotchCompactActivity? {
         activitySelection.current(available: compactActivities)
     }
@@ -270,7 +274,7 @@ final class NotchService: ObservableObject {
     var compactActivities: [NotchCompactActivity] {
         NotchSupport.compactActivities(timer: hasTimerActivity, downloads: hasDownloadActivity,
                                       agents: hasAgentActivity, calendar: hasCalendarActivity,
-                                      music: hasMusicActivity)
+                                      music: hasMusicActivity, keepAwake: hasKeepAwakeActivity)
     }
 
     var showsCompactActivityPicker: Bool {
@@ -367,8 +371,15 @@ final class NotchService: ObservableObject {
             return geometry.compactDownloadGeometry(wing: NotchDownloadSupport.compactWing(for: name, in: geometry))
         case .agents: return geometry.compactAgentGeometry(wing: agentStripWing(in: geometry))
         case .calendar: return geometry.compactCalendarGeometry(wing: calendarStripWing(for: companion, in: geometry))
+        // Its reading is a countdown like the timer's, so it takes the timer's wings.
+        case .keepAwake: return geometry.compactTimerGeometry(showsDownloads: false, wing: keepAwakeStripWing(in: geometry))
         default: return geometry
         }
+    }
+
+    private func keepAwakeStripWing(in geometry: NotchGeometry) -> CGFloat {
+        NotchKeepAwakeSupport.stripWing(until: KeepAwakeManager.shared.endDate, now: Date(),
+                                        locale: Locale(identifier: L10n.shared.language.rawValue), in: geometry)
     }
 
     /// The wider of the two sides, measured with the strip's fonts and its
@@ -664,6 +675,11 @@ final class NotchService: ObservableObject {
             return layout.calendarSurface(title: layout.calendarTitle(countdown, language: language),
                                           time: NotchCalendarSupport.timeText(countdown, locale: language.formattingLocale()),
                                           geometry: geometry)
+        case .keepAwake:
+            let reading = KeepAwakeManager.shared.endDate.map {
+                NotchKeepAwakeSupport.compactText(until: $0, now: Date(), locale: Locale(identifier: language.rawValue))
+            }
+            return layout.keepAwakeSurface(reading: reading, geometry: geometry)
         }
     }
 
@@ -745,6 +761,7 @@ final class NotchService: ObservableObject {
         NotchAccessoryService.shared.syncWithPreferences()
         let signature = NotchEvent.allCases.map { String(NotchSupport.routes($0)) }.joined()
             + NotchSupport.idleContent().rawValue + String(NotchSupport.watchesMusicActivity())
+            + String(NotchKeepAwakeSupport.showsActivity())
             + modules.map(\.rawValue).joined()
             + String(AppFeature.fanControl.isAvailable)
             + String(NotchSupport.routesShelf()) + String(NotchSupport.revealsShelfDrag())
@@ -2964,6 +2981,18 @@ final class NotchService: ObservableObject {
         }
         if modules.contains(.calendar) {
             NotchCalendarService.shared.$countdown.removeDuplicates()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.syncMenuSpaceMonitoring()
+                    self?.objectWillChange.send()
+                    self?.refreshPresentation()
+                }.store(in: &subscriptions)
+        }
+        if NotchKeepAwakeSupport.showsActivity() {
+            // A session starting or ending, or its end moving, which can
+            // change the reading and the wings it needs.
+            let awake = KeepAwakeManager.shared
+            awake.$isActive.combineLatest(awake.$endDate).removeDuplicates { $0 == $1 }
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     self?.syncMenuSpaceMonitoring()

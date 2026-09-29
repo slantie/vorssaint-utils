@@ -32,6 +32,7 @@ struct NotchMirrorView: View {
                 case .agents: NotchCapsuleAgentStrip(service: service, size: size, displayGeometry: geometry)
                 case .calendar: NotchCapsuleCalendarStrip(service: service, size: size, displayGeometry: geometry)
                 case .music: NotchCapsuleMusicStrip(service: service, size: size, displayGeometry: geometry)
+                case .keepAwake: NotchCapsuleKeepAwakeStrip(service: service, size: size, displayGeometry: geometry)
                 }
             } else {
                 switch activity {
@@ -40,6 +41,7 @@ struct NotchMirrorView: View {
                 case .agents: NotchAgentStrip(service: service, displayGeometry: mirror.strip)
                 case .calendar: NotchCalendarStrip(service: service, displayGeometry: mirror.strip)
                 case .music: NotchMusicStrip(service: service, displayGeometry: mirror.strip)
+                case .keepAwake: NotchKeepAwakeStrip(service: service, displayGeometry: mirror.strip)
                 }
             }
         } else if geometry.floats {
